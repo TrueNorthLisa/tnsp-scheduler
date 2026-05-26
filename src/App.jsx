@@ -346,6 +346,10 @@ export default function App() {
     .filter(j => {
       if (activeRole === "lisa") return true;
       if (activeRole === "brother") return true;
+      if (activeRole === "harrison" || activeRole === "emb_assist")
+        return j.type === "embroidery" && (j.assignedTo === activeRole || j.assignedTo === null);
+      if (activeRole === "lead_printer" || activeRole === "press_assist")
+        return j.type !== "embroidery" && (j.assignedTo === activeRole || j.assignedTo === null);
       return j.assignedTo === activeRole || j.assignedTo === null;
     })
     .sort((a, b) => a.priority - b.priority);
