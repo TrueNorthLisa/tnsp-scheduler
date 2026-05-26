@@ -315,7 +315,12 @@ export default function App() {
     await Promise.all(reordered.map(j => sb.update("jobs", { priority: j.priority }, { id: j.id })));
   };
 
-  // ── Add new job ──
+  // ── Update notes ──
+  const updateNotes = async (jobId, notes) => {
+    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, notes } : j));
+    notify("Notes updated");
+    await sb.update("jobs", { notes }, { id: jobId });
+  };
   const addJob = async (job) => {
     const maxPriority = jobs.length > 0 ? Math.max(...jobs.map(j => j.priority)) : 0;
     const newJob = { ...job, priority: maxPriority + 1 };
@@ -499,6 +504,7 @@ export default function App() {
           activeRole={activeRole}
           onAdvance={advanceJob} onToggleDeposit={toggleDeposit}
           onToggleUrgency={toggleUrgency} onAssign={updateAssign}
+          onUpdateNotes={updateNotes}
           onClose={()=>{setView("board");setSelectedJob(null);}} />
       )}
 
@@ -648,6 +654,14 @@ function JobCard({ job, activeRole, onAdvance, onToggleDeposit, onToggleUrgency,
       {/* Actions — stop propagation so card click doesn't fire */}
       {(activeRole==="lisa"||activeRole==="brother") && (
         <div style={styles.cardActions} onClick={e=>e.stopPropagation()}>
+          <select style={styles.cardAssignSelect}
+            value={job.assignedTo||""}
+            onChange={e=>onAssign(job.id, e.target.value)}>
+            <option value="">Assign to…</option>
+            {ROLES.filter(r=>r.id!=="lisa"&&r.id!=="brother").map(r=>(
+              <option key={r.id} value={r.id}>{r.label}</option>
+            ))}
+          </select>
           {next && canAdvance && (
             <button style={styles.advanceBtn} onClick={()=>onAdvance(job.id)}>
               → {next.label}
@@ -732,11 +746,18 @@ function ListRow({ job, activeRole, onAdvance, onToggleDeposit, onToggleUrgency,
 }
 
 // ── Detail Modal ─────────────────────────────────────────────────────────────
-function DetailModal({ job, activeRole, onAdvance, onToggleDeposit, onToggleUrgency, onAssign, onClose }) {
+function DetailModal({ job, activeRole, onAdvance, onToggleDeposit, onToggleUrgency, onAssign, onUpdateNotes, onClose }) {
   const steps = WORKFLOW[job.type];
   const currentIdx = getStepIndex(job);
   const next = getNextStep(job);
   const canAdvance = activeRole==="lisa"||activeRole==="brother";
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesVal, setNotesVal] = useState(job.notes || "");
+
+  const saveNotes = () => {
+    onUpdateNotes(job.id, notesVal);
+    setEditingNotes(false);
+  };
 
   return (
     <div style={styles.modalOverlay} onClick={onClose}>
@@ -792,12 +813,28 @@ function DetailModal({ job, activeRole, onAdvance, onToggleDeposit, onToggleUrge
             valueStyle={{color: job.urgency==="rush"?"#ff9f43":"#888"}} />
         </div>
 
-        {job.notes && (
-          <div style={styles.notesBox}>
+        {/* Notes — editable */}
+        <div style={styles.notesBox}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
             <div style={styles.notesLabel}>Notes</div>
-            <div style={styles.notesText}>{job.notes}</div>
+            {(activeRole==="lisa"||activeRole==="brother") && !editingNotes && (
+              <button style={styles.editNotesBtn} onClick={()=>setEditingNotes(true)}>✏ Edit</button>
+            )}
           </div>
-        )}
+          {editingNotes ? (
+            <div>
+              <textarea style={styles.notesTextarea}
+                value={notesVal} onChange={e=>setNotesVal(e.target.value)}
+                rows={3} autoFocus />
+              <div style={{display:"flex",gap:8,marginTop:8}}>
+                <button style={styles.modalAdvanceBtn} onClick={saveNotes}>Save</button>
+                <button style={styles.modalSecBtn} onClick={()=>{setNotesVal(job.notes||"");setEditingNotes(false);}}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <div style={styles.notesText}>{notesVal || <span style={{color:"#444",fontStyle:"italic"}}>No notes — click Edit to add</span>}</div>
+          )}
+        </div>
 
         {/* Actions */}
         {canAdvance && (
@@ -816,21 +853,18 @@ function DetailModal({ job, activeRole, onAdvance, onToggleDeposit, onToggleUrge
           </div>
         )}
 
-        {/* Assign (manager only) */}
+        {/* Assign — visible to Lisa and Shop Manager */}
         {(activeRole==="lisa"||activeRole==="brother") && (
           <div style={styles.assignRow}>
             <span style={styles.assignLabel}>Assign to:</span>
-            {ROLES.filter(r=>r.id!=="lisa").map(r=>(
-              <button key={r.id}
-                style={{...styles.assignBtn,
-                  background: job.assignedTo===r.id ? r.color+"33" : "#ffffff08",
-                  borderColor: job.assignedTo===r.id ? r.color : "transparent",
-                  color: job.assignedTo===r.id ? r.color : "#888",
-                }}
-                onClick={()=>onAssign(job.id,r.id)}>
-                {r.label}
-              </button>
-            ))}
+            <select style={styles.assignSelectModal}
+              value={job.assignedTo||""}
+              onChange={e=>onAssign(job.id, e.target.value)}>
+              <option value="">Unassigned</option>
+              {ROLES.filter(r=>r.id!=="lisa"&&r.id!=="brother").map(r=>(
+                <option key={r.id} value={r.id}>{r.label}</option>
+              ))}
+            </select>
           </div>
         )}
       </div>
@@ -1670,8 +1704,26 @@ const styles = {
     border:"1px solid #ffffff20", borderRadius:6, fontWeight:600,
     cursor:"pointer", fontSize:13,
   },
-  assignRow: {
-    display:"flex", alignItems:"center", gap:8, flexWrap:"wrap",
+  cardAssignSelect: {
+    width:"100%", background:"#ffffff08", border:"1px solid #ffffff15",
+    color:"#888", padding:"5px 8px", borderRadius:4, fontSize:11,
+    marginBottom:6, cursor:"pointer",
+  },
+  editNotesBtn: {
+    background:"transparent", border:"1px solid #ffffff20",
+    color:"#555", padding:"2px 10px", borderRadius:4,
+    cursor:"pointer", fontSize:11,
+  },
+  notesTextarea: {
+    width:"100%", background:"#0d0d0d", border:"1px solid #ffffff20",
+    color:"#d4d0c8", borderRadius:4, padding:"8px 10px",
+    fontSize:13, fontFamily:"inherit", resize:"vertical",
+    boxSizing:"border-box",
+  },
+  assignSelectModal: {
+    flex:1, background:"#1e1e1e", border:"1px solid #ffffff20",
+    color:"#d4d0c8", padding:"8px 12px", borderRadius:6,
+    fontSize:13, cursor:"pointer",
   },
   assignLabel: { fontSize:12, color:"#555", marginRight:4 },
   assignBtn: {
