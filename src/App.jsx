@@ -42,8 +42,10 @@ const JOB_TYPES = [
 const ROLES = [
   { id: "lisa",           label: "Lisa",            color: "#e8c547", desc: "Office / Remote" },
   { id: "brother",        label: "Shop Manager",    color: "#4ec9a0", desc: "On-Site Manager" },
-  { id: "lead_printer",   label: "Lead Printer",    color: "#7eb8f7", desc: "Floor" },
-  { id: "press_assist",   label: "Press Assistant", color: "#f79e7e", desc: "Floor" },
+  { id: "lead_printer",   label: "Lead Printer",    color: "#7eb8f7", desc: "Print Floor" },
+  { id: "press_assist",   label: "Press Assistant", color: "#f79e7e", desc: "Print Floor" },
+  { id: "harrison",       label: "Harrison",        color: "#c084fc", desc: "Embroidery" },
+  { id: "emb_assist",     label: "Emb Assistant",   color: "#34d399", desc: "Embroidery" },
 ];
 
 // ── Supabase client ───────────────────────────────────────────────────────────
@@ -171,7 +173,7 @@ export default function App() {
   const [notification, setNotification] = useState(null);
   const [dragOver, setDragOver] = useState(null);
   const dragJob = useRef(null);
-  const [todaySheet, setTodaySheet] = useState({ lead_printer: [], press_assist: [] });
+  const [todaySheet, setTodaySheet] = useState({ lead_printer: [], press_assist: [], harrison: [], emb_assist: [] });
   const [todayNotes, setTodayNotes] = useState("");
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -194,7 +196,12 @@ export default function App() {
     const today = new Date().toISOString().slice(0, 10);
     const data = await sb.select("runsheets", `?date=eq.${today}&order=id.desc&limit=1`);
     if (data?.[0]) {
-      setTodaySheet({ lead_printer: data[0].lead_printer || [], press_assist: data[0].press_assist || [] });
+      setTodaySheet({
+        lead_printer: data[0].lead_printer || [],
+        press_assist: data[0].press_assist || [],
+        harrison:     data[0].harrison     || [],
+        emb_assist:   data[0].emb_assist   || [],
+      });
       setTodayNotes(data[0].manager_note || "");
     }
     // Load history (past runsheets)
@@ -220,7 +227,7 @@ export default function App() {
   useEffect(() => {
     const lastReset = localStorage.getItem("tnsp_last_reset");
     if (lastReset && lastReset !== todayKey) {
-      setTodaySheet({ lead_printer: [], press_assist: [] });
+      setTodaySheet({ lead_printer: [], press_assist: [], harrison: [], emb_assist: [] });
       setTodayNotes("");
     }
     localStorage.setItem("tnsp_last_reset", todayKey);
@@ -233,6 +240,8 @@ export default function App() {
       date: today,
       lead_printer: sheet.lead_printer,
       press_assist: sheet.press_assist,
+      harrison:     sheet.harrison     || [],
+      emb_assist:   sheet.emb_assist   || [],
       manager_note: notes,
       created_by: activeRole,
     });
@@ -323,7 +332,7 @@ export default function App() {
     if (hasJobs) {
       setHistory(prev => [{ date: todayKey, notes: todayNotes, lead_printer: todaySheet.lead_printer, press_assist: todaySheet.press_assist }, ...prev]);
     }
-    const empty = { lead_printer: [], press_assist: [] };
+    const empty = { lead_printer: [], press_assist: [], harrison: [], emb_assist: [] };
     setTodaySheet(empty);
     setTodayNotes("");
     await saveRunsheet(empty, "");
@@ -917,12 +926,19 @@ function TodayView({ jobs, activeRole, todaySheet, setTodaySheet, todayNotes, se
   const today = new Date().toLocaleDateString("en-CA", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
 
   const floorRoles = [
-    { id: "lead_printer",  label: "Lead Printer",    color: "#7eb8f7" },
-    { id: "press_assist",  label: "Press Assistant",  color: "#f79e7e" },
+    { id: "lead_printer", label: "Lead Printer",    color: "#7eb8f7" },
+    { id: "press_assist", label: "Press Assistant", color: "#f79e7e" },
+    { id: "harrison",     label: "Harrison",        color: "#c084fc" },
+    { id: "emb_assist",   label: "Emb Assistant",   color: "#34d399" },
   ];
 
   // Jobs eligible to assign: not shipped, has a due date, not already in today sheet
-  const assignedIds = [...todaySheet.lead_printer, ...todaySheet.press_assist];
+  const assignedIds = [
+    ...todaySheet.lead_printer,
+    ...todaySheet.press_assist,
+    ...(todaySheet.harrison   || []),
+    ...(todaySheet.emb_assist || []),
+  ];
   const eligible = jobs
     .filter(j => j.currentStep !== "shipping")
     .sort((a,b) => a.priority - b.priority);
@@ -1667,3 +1683,4 @@ const styles = {
     fontFamily:"inherit",
   },
 };
+
