@@ -3,40 +3,43 @@ import { useState, useEffect, useRef } from "react";
 // ── Workflow definitions ──────────────────────────────────────────────────────
 const WORKFLOW = {
   screenprint_new: [
-    { id: "quote",        label: "Quote Sent",         icon: "📋", owner: "lisa" },
-    { id: "approved",     label: "Estimate Approved",  icon: "✅", owner: "lisa" },
-    { id: "deposit",      label: "Deposit Received",   icon: "💰", owner: "lisa" },
-    { id: "blanks",       label: "Blanks Ordered",     icon: "📦", owner: "lisa" },
-    { id: "seps",         label: "Seps / Burn Folder", icon: "🎨", owner: "brother" },
-    { id: "burn",         label: "Screens Burned",     icon: "🔥", owner: "press_assist" },
-    { id: "presscheck",   label: "Press Check",        icon: "👁",  owner: "lead_printer" },
-    { id: "production",   label: "Full Production",    icon: "⚙️", owner: "lead_printer" },
-    { id: "readyship",    label: "Ready to Ship",      icon: "📫", owner: "press_assist" },
-    { id: "shipped",      label: "Shipped",            icon: "🚚", owner: "press_assist" },
-    { id: "followup",     label: "Follow Up",          icon: "📞", owner: "lisa" },
+    { id: "quote",        label: "Quote Sent",             icon: "📋", owner: "lisa" },
+    { id: "approved",     label: "Estimate Approved",      icon: "✅", owner: "lisa" },
+    { id: "deposit",      label: "Deposit Received",       icon: "💰", owner: "lisa" },
+    { id: "blanks",       label: "Blanks Ordered",         icon: "📦", owner: "lisa" },
+    { id: "print_forms",  label: "Print Production Forms", icon: "🖨️", owner: "lupe" },
+    { id: "seps",         label: "Seps / Burn Folder",     icon: "🎨", owner: "brother" },
+    { id: "burn",         label: "Screens Burned",         icon: "🔥", owner: "press_assist" },
+    { id: "presscheck",   label: "Press Check",            icon: "👁",  owner: "lead_printer" },
+    { id: "production",   label: "Full Production",        icon: "⚙️", owner: "lead_printer" },
+    { id: "readyship",    label: "Ready to Ship",          icon: "📫", owner: "press_assist" },
+    { id: "shipped",      label: "Shipped",                icon: "🚚", owner: "press_assist" },
+    { id: "followup",     label: "Follow Up",              icon: "📞", owner: "lisa" },
   ],
   screenprint_reprint: [
-    { id: "quote",        label: "Quote Sent",         icon: "📋", owner: "lisa" },
-    { id: "approved",     label: "Estimate Approved",  icon: "✅", owner: "lisa" },
-    { id: "deposit",      label: "Deposit Received",   icon: "💰", owner: "lisa" },
-    { id: "blanks",       label: "Blanks Ordered",     icon: "📦", owner: "lisa" },
-    { id: "burn",         label: "Screens Burned",     icon: "🔥", owner: "press_assist" },
-    { id: "production",   label: "Full Production",    icon: "⚙️", owner: "lead_printer" },
-    { id: "readyship",    label: "Ready to Ship",      icon: "📫", owner: "press_assist" },
-    { id: "shipped",      label: "Shipped",            icon: "🚚", owner: "press_assist" },
-    { id: "followup",     label: "Follow Up",          icon: "📞", owner: "lisa" },
+    { id: "quote",        label: "Quote Sent",             icon: "📋", owner: "lisa" },
+    { id: "approved",     label: "Estimate Approved",      icon: "✅", owner: "lisa" },
+    { id: "deposit",      label: "Deposit Received",       icon: "💰", owner: "lisa" },
+    { id: "blanks",       label: "Blanks Ordered",         icon: "📦", owner: "lisa" },
+    { id: "print_forms",  label: "Print Production Forms", icon: "🖨️", owner: "lupe" },
+    { id: "burn",         label: "Screens Burned",         icon: "🔥", owner: "press_assist" },
+    { id: "production",   label: "Full Production",        icon: "⚙️", owner: "lead_printer" },
+    { id: "readyship",    label: "Ready to Ship",          icon: "📫", owner: "press_assist" },
+    { id: "shipped",      label: "Shipped",                icon: "🚚", owner: "press_assist" },
+    { id: "followup",     label: "Follow Up",              icon: "📞", owner: "lisa" },
   ],
   embroidery: [
-    { id: "quote",        label: "Quote Sent",         icon: "📋", owner: "lisa" },
-    { id: "approved",     label: "Estimate Approved",  icon: "✅", owner: "lisa" },
-    { id: "deposit",      label: "Deposit Received",   icon: "💰", owner: "lisa" },
-    { id: "blanks",       label: "Blanks Ordered",     icon: "📦", owner: "lisa" },
-    { id: "digitizing",   label: "Sent to Harrison",   icon: "🧵", owner: "harrison" },
-    { id: "sewout",       label: "Sew Out",            icon: "🪡", owner: "harrison" },
-    { id: "production",   label: "Full Production",    icon: "⚙️", owner: "harrison" },
-    { id: "readyship",    label: "Ready to Ship",      icon: "📫", owner: "press_assist" },
-    { id: "shipped",      label: "Shipped",            icon: "🚚", owner: "press_assist" },
-    { id: "followup",     label: "Follow Up",          icon: "📞", owner: "lisa" },
+    { id: "quote",        label: "Quote Sent",             icon: "📋", owner: "lisa" },
+    { id: "approved",     label: "Estimate Approved",      icon: "✅", owner: "lisa" },
+    { id: "deposit",      label: "Deposit Received",       icon: "💰", owner: "lisa" },
+    { id: "blanks",       label: "Blanks Ordered",         icon: "📦", owner: "lisa" },
+    { id: "print_forms",  label: "Print Production Forms", icon: "🖨️", owner: "lupe" },
+    { id: "digitizing",   label: "Sent to Harrison",       icon: "🧵", owner: "harrison" },
+    { id: "sewout",       label: "Sew Out",                icon: "🪡", owner: "harrison" },
+    { id: "production",   label: "Full Production",        icon: "⚙️", owner: "harrison" },
+    { id: "readyship",    label: "Ready to Ship",          icon: "📫", owner: "press_assist" },
+    { id: "shipped",      label: "Shipped",                icon: "🚚", owner: "press_assist" },
+    { id: "followup",     label: "Follow Up",              icon: "📞", owner: "lisa" },
   ],
 };
 
@@ -53,6 +56,7 @@ const ROLES = [
   { id: "press_assist", label: "Press Assistant", color: "#f79e7e", desc: "Print Floor" },
   { id: "harrison",     label: "Harrison",        color: "#c084fc", desc: "Embroidery" },
   { id: "emb_assist",   label: "Emb Assistant",   color: "#34d399", desc: "Embroidery" },
+  { id: "lupe",         label: "Lupe",            color: "#fb923c", desc: "Admin / Production" },
 ];
 
 // ── Supabase client ───────────────────────────────────────────────────────────
@@ -184,7 +188,7 @@ export default function App() {
   const [notification, setNotification] = useState(null);
   const [dragOver, setDragOver]       = useState(null);
   const dragJob = useRef(null);
-  const [todaySheet, setTodaySheet]   = useState({ lead_printer:[], press_assist:[], harrison:[], emb_assist:[] });
+  const [todaySheet, setTodaySheet]   = useState({ lead_printer:[], press_assist:[], harrison:[], emb_assist:[], lupe:[] });
   const [todayNotes, setTodayNotes]   = useState("");
   const [history, setHistory]         = useState([]);
 
@@ -231,7 +235,7 @@ export default function App() {
   const todayKey = new Date().toISOString().slice(0,10);
   useEffect(() => {
     const last = localStorage.getItem("tnsp_last_reset");
-    if (last && last !== todayKey) setTodaySheet({ lead_printer:[], press_assist:[], harrison:[], emb_assist:[] });
+    if (last && last !== todayKey) setTodaySheet({ lead_printer:[], press_assist:[], harrison:[], emb_assist:[], lupe:[] });
     localStorage.setItem("tnsp_last_reset", todayKey);
   }, []);
 
@@ -258,6 +262,21 @@ export default function App() {
     notify(`${job.customer} → ${next.label}`);
     await sb.update("jobs", updates, { id: jobId });
     await sb.insert("job_history", { job_id: jobId, from_step: job.currentStep, to_step: next.id, changed_by: activeRole });
+  };
+
+  // ── Step back ──
+  const stepBackJob = async (jobId) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+    const steps = WORKFLOW[job.type] || WORKFLOW.screenprint_new;
+    const idx = steps.findIndex(s => s.id === job.currentStep);
+    if (idx <= 0) return;
+    const prev = steps[idx - 1];
+    const prevOwner = defaultStepOwner(job, prev.id);
+    setJobs(js => js.map(j => j.id === jobId ? { ...j, currentStep: prev.id, stepOwner: prevOwner, trackingNum: "", isPickup: false } : j));
+    notify(`${job.customer} ← moved back to ${prev.label}`);
+    await sb.update("jobs", { current_step: prev.id, step_owner: prevOwner, tracking_num: null, is_pickup: false }, { id: jobId });
+    await sb.insert("job_history", { job_id: jobId, from_step: job.currentStep, to_step: prev.id, changed_by: activeRole, note: "stepped back" });
   };
 
   // ── Archive job ──
@@ -315,7 +334,7 @@ export default function App() {
   const resetRunsheet = async () => {
     const hasJobs = Object.values(todaySheet).flat().length > 0;
     if (hasJobs) setHistory(prev=>[{date:todayKey, notes:todayNotes, ...todaySheet}, ...prev]);
-    const empty = { lead_printer:[], press_assist:[], harrison:[], emb_assist:[] };
+    const empty = { lead_printer:[], press_assist:[], harrison:[], emb_assist:[], lupe:[] };
     setTodaySheet(empty); setTodayNotes("");
     await saveRunsheet(empty, "");
     notify("Runsheet cleared");
@@ -325,20 +344,32 @@ export default function App() {
   const activeJobs = jobs.filter(j => !j.archived);
   const archivedJobs = jobs.filter(j => j.archived);
 
+  const FLOOR_ROLES = ["lead_printer","press_assist","harrison","emb_assist","lupe"];
+
   const visibleJobs = activeJobs
     .filter(j => filterUrgency==="all" || j.urgency===filterUrgency)
     .filter(j => filterType==="all" || j.type===filterType)
     .filter(j => {
-      if (activeRole==="lisa") {
-        // Lisa sees jobs where she's the step owner
-        return j.stepOwner==="lisa" || j.stepOwner===null;
+      switch(activeRole) {
+        case "lisa":
+          // Only jobs where Lisa owns the current step
+          return j.stepOwner==="lisa";
+        case "brother":
+          // Floor team's jobs + his own (seps)
+          return j.stepOwner==="brother" || FLOOR_ROLES.includes(j.assignedTo) || FLOOR_ROLES.includes(j.stepOwner);
+        case "harrison":
+          return j.type==="embroidery" && (j.assignedTo==="harrison" || j.stepOwner==="harrison");
+        case "emb_assist":
+          return j.type==="embroidery" && (j.assignedTo==="emb_assist" || j.stepOwner==="emb_assist");
+        case "lead_printer":
+          return j.type!=="embroidery" && (j.assignedTo==="lead_printer" || j.stepOwner==="lead_printer");
+        case "press_assist":
+          return j.type!=="embroidery" && (j.assignedTo==="press_assist" || j.stepOwner==="press_assist");
+        case "lupe":
+          return j.stepOwner==="lupe" || j.currentStep==="print_forms";
+        default:
+          return j.assignedTo===activeRole || j.stepOwner===activeRole;
       }
-      if (activeRole==="brother") return true;
-      if (activeRole==="harrison" || activeRole==="emb_assist")
-        return j.type==="embroidery" && (j.assignedTo===activeRole || j.assignedTo===null);
-      if (activeRole==="lead_printer" || activeRole==="press_assist")
-        return j.type!=="embroidery" && (j.assignedTo===activeRole || j.assignedTo===null);
-      return j.assignedTo===activeRole || j.assignedTo===null;
     })
     .sort((a,b)=>a.priority-b.priority);
 
@@ -425,9 +456,10 @@ export default function App() {
             {id:"board",   label:"⬛ Board"},
             {id:"list",    label:"☰ List"},
             {id:"today",   label:"📋 Today"},
-            {id:"archive", label:"🗂 Archive"},
+            {id:"admin",   label:"🗂 Admin"},
+            {id:"archive", label:"📁 Archive"},
           ].map(v=>(
-            <button key={v.id} style={{...S.viewBtn,...(view===v.id?S.viewBtnActive:{}),...(v.id==="archive"?{color:"#666"}:{})}}
+            <button key={v.id} style={{...S.viewBtn,...(view===v.id?S.viewBtnActive:{})}}
               onClick={()=>setView(v.id)}>{v.label}</button>
           ))}
         </div>
@@ -435,15 +467,17 @@ export default function App() {
 
       {/* Main */}
       <main style={S.main}>
-        {view==="board" && <BoardView jobs={visibleJobs} activeRole={activeRole} onAdvance={advanceJob} onArchive={archiveJob} onToggleDeposit={toggleDeposit} onToggleUrgency={toggleUrgency} onAssign={updateAssign} onSelect={j=>{setSelectedJob(j);setView("detail");}} dragOver={dragOver} setDragOver={setDragOver} onDragStart={handleDragStart} onDrop={handleDrop} />}
-        {view==="list"  && <ListView  jobs={visibleJobs} activeRole={activeRole} onAdvance={advanceJob} onArchive={archiveJob} onToggleDeposit={toggleDeposit} onToggleUrgency={toggleUrgency} onAssign={updateAssign} onSelect={j=>{setSelectedJob(j);setView("detail");}} dragOver={dragOver} setDragOver={setDragOver} onDragStart={handleDragStart} onDrop={handleDrop} />}
-        {view==="today" && <TodayView jobs={activeJobs} activeRole={activeRole} todaySheet={todaySheet} setTodaySheet={updateTodaySheet} todayNotes={todayNotes} setTodayNotes={updateTodayNotes} onAdvance={advanceJob} onSelect={j=>{setSelectedJob(j);setView("detail");}} onReset={resetRunsheet} history={history} notify={notify} />}
+        {view==="board"   && <BoardView jobs={visibleJobs} activeRole={activeRole} onAdvance={advanceJob} onArchive={archiveJob} onToggleDeposit={toggleDeposit} onToggleUrgency={toggleUrgency} onAssign={updateAssign} onSelect={j=>{setSelectedJob(j);setView("detail");}} dragOver={dragOver} setDragOver={setDragOver} onDragStart={handleDragStart} onDrop={handleDrop} />}
+        {view==="list"    && <ListView  jobs={visibleJobs} activeRole={activeRole} onAdvance={advanceJob} onArchive={archiveJob} onToggleDeposit={toggleDeposit} onToggleUrgency={toggleUrgency} onAssign={updateAssign} onSelect={j=>{setSelectedJob(j);setView("detail");}} dragOver={dragOver} setDragOver={setDragOver} onDragStart={handleDragStart} onDrop={handleDrop} />}
+        {view==="today"   && <TodayView jobs={activeJobs} activeRole={activeRole} todaySheet={todaySheet} setTodaySheet={updateTodaySheet} todayNotes={todayNotes} setTodayNotes={updateTodayNotes} onAdvance={advanceJob} onSelect={j=>{setSelectedJob(j);setView("detail");}} onReset={resetRunsheet} history={history} notify={notify} />}
+        {view==="admin"   && <AdminView jobs={activeJobs} activeRole={activeRole} onAdvance={advanceJob} onSelect={j=>{setSelectedJob(j);setView("detail");}} notify={notify} />}
         {view==="archive" && <ArchiveView jobs={archivedJobs} onSelect={j=>{setSelectedJob(j);setView("detail");}} />}
       </main>
 
       {view==="detail" && selectedJob && (
         <DetailModal job={jobs.find(j=>j.id===selectedJob.id)||selectedJob}
           activeRole={activeRole} onAdvance={advanceJob} onArchive={archiveJob}
+          onStepBack={stepBackJob}
           onToggleDeposit={toggleDeposit} onToggleUrgency={toggleUrgency}
           onAssign={updateAssign} onUpdateNotes={updateNotes}
           onClose={()=>{setView(selectedJob.archived?"archive":"board");setSelectedJob(null);}} />
@@ -705,10 +739,12 @@ function ShippingModal({ job, onConfirm, onClose }) {
 }
 
 // ── Detail Modal ──────────────────────────────────────────────────────────────
-function DetailModal({ job, activeRole, onAdvance, onArchive, onToggleDeposit, onToggleUrgency, onAssign, onUpdateNotes, onClose }) {
+function DetailModal({ job, activeRole, onAdvance, onArchive, onStepBack, onToggleDeposit, onToggleUrgency, onAssign, onUpdateNotes, onClose }) {
   const steps      = WORKFLOW[job.type] || WORKFLOW.screenprint_new;
   const currentIdx = getStepIndex(job);
   const next       = getNextStep(job);
+  const hasPrev    = currentIdx > 0;
+  const prevStep   = hasPrev ? steps[currentIdx - 1] : null;
   const isManager  = activeRole==="lisa"||activeRole==="brother";
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesVal, setNotesVal]         = useState(job.notes||"");
@@ -813,6 +849,12 @@ function DetailModal({ job, activeRole, onAdvance, onArchive, onToggleDeposit, o
             )}
             {job.currentStep==="followup" && (
               <button style={{...S.modalAdvanceBtn,background:"#4ec9a0",color:"#0d0d0d"}} onClick={()=>{onArchive(job.id);onClose();}}>✓ Followed Up — Archive Job</button>
+            )}
+            {hasPrev && !job.archived && (
+              <button style={{...S.modalSecBtn,color:"#ff9f43",borderColor:"#ff9f4340"}}
+                onClick={()=>{onStepBack(job.id);onClose();}}>
+                ← Back to {prevStep.label}
+              </button>
             )}
             <button style={S.modalSecBtn} onClick={()=>onToggleDeposit(job.id)}>{job.depositPaid?"Mark Deposit Unpaid":"Mark Deposit Paid"}</button>
             <button style={S.modalSecBtn} onClick={()=>onToggleUrgency(job.id)}>{job.urgency==="rush"?"Remove Rush":"Mark Rush 🔥"}</button>
@@ -999,7 +1041,7 @@ function TodayView({ jobs, activeRole, todaySheet, setTodaySheet, todayNotes, se
 // ── History Panel ─────────────────────────────────────────────────────────────
 function HistoryPanel({ history, jobs, onClose }) {
   const [expanded, setExpanded] = useState(null);
-  const floorRoles = [{id:"lead_printer",label:"Lead Printer",color:"#7eb8f7"},{id:"press_assist",label:"Press Assistant",color:"#f79e7e"},{id:"harrison",label:"Harrison",color:"#c084fc"},{id:"emb_assist",label:"Emb Assistant",color:"#34d399"}];
+  const floorRoles = [{id:"lead_printer",label:"Lead Printer",color:"#7eb8f7"},{id:"press_assist",label:"Press Assistant",color:"#f79e7e"},{id:"harrison",label:"Harrison",color:"#c084fc"},{id:"emb_assist",label:"Emb Assistant",color:"#34d399"},{id:"lupe",label:"Lupe",color:"#fb923c"}];
   const fmt = d => new Date(d).toLocaleDateString("en-CA",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
   const getJobName = (id) => { const j=jobs.find(j=>j.id===id); return j?`${j.customer} — ${j.product}`:`Job #${id}`; };
   return (
@@ -1010,7 +1052,7 @@ function HistoryPanel({ history, jobs, onClose }) {
       </div>
       {history.length===0&&<div style={{padding:"60px 0",textAlign:"center",color:"#555"}}>No history yet.</div>}
       {history.map((entry,i)=>{
-        const total=(entry.lead_printer?.length||0)+(entry.press_assist?.length||0)+(entry.harrison?.length||0)+(entry.emb_assist?.length||0);
+        const total=(entry.lead_printer?.length||0)+(entry.press_assist?.length||0)+(entry.harrison?.length||0)+(entry.emb_assist?.length||0)+(entry.lupe?.length||0);
         const isOpen=expanded===i;
         return (
           <div key={i} style={HS.entry}>
@@ -1103,6 +1145,180 @@ function AddJobModal({ onAdd, onClose }) {
     </div>
   );
 }
+
+// ── Admin View ────────────────────────────────────────────────────────────────
+function AdminView({ jobs, activeRole, onAdvance, onSelect, notify }) {
+  const today = new Date().toISOString().slice(0,10);
+  const [blanksChecked,  setBlanksChecked]  = useState(() => JSON.parse(localStorage.getItem(`tnsp_blanks_${today}`)  || "{}"));
+  const [formsChecked,   setFormsChecked]   = useState(() => JSON.parse(localStorage.getItem(`tnsp_forms_${today}`)   || "{}"));
+
+  const saveBlanks = (updated) => { setBlanksChecked(updated); localStorage.setItem(`tnsp_blanks_${today}`, JSON.stringify(updated)); };
+  const saveForms  = (updated) => { setFormsChecked(updated);  localStorage.setItem(`tnsp_forms_${today}`,  JSON.stringify(updated)); };
+
+  // Jobs waiting on blanks (at blanks step)
+  const blankJobs  = jobs.filter(j => j.currentStep==="blanks" && !j.archived);
+  // Jobs ready for production forms (at print_forms step)
+  const formJobs   = jobs.filter(j => j.currentStep==="print_forms" && !j.archived);
+
+  const toggleBlanks = (jobId) => {
+    const updated = { ...blanksChecked, [jobId]: !blanksChecked[jobId] };
+    saveBlanks(updated);
+    if (updated[jobId]) notify("Blanks received ✓");
+  };
+
+  const toggleForms = (jobId) => {
+    const updated = { ...formsChecked, [jobId]: !formsChecked[jobId] };
+    saveForms(updated);
+    if (updated[jobId]) notify("Production forms printed ✓");
+  };
+
+  const advanceAndCheck = (jobId, type) => {
+    if (type==="blanks") saveBlanks({ ...blanksChecked, [jobId]: true });
+    if (type==="forms")  saveForms({ ...formsChecked,  [jobId]: true });
+    onAdvance(jobId);
+    notify("Step advanced ✓");
+  };
+
+  const blanksRemaining = blankJobs.filter(j=>!blanksChecked[j.id]).length;
+  const formsRemaining  = formJobs.filter(j=>!formsChecked[j.id]).length;
+
+  return (
+    <div style={{maxWidth:900, margin:"0 auto"}}>
+      <div style={{marginBottom:28}}>
+        <div style={{fontSize:11,color:"#555",letterSpacing:2,textTransform:"uppercase"}}>Daily Checklist</div>
+        <div style={{fontSize:20,fontWeight:800,letterSpacing:3,color:"#f0ede8",marginTop:4}}>ADMIN TASKS</div>
+        <div style={{fontSize:12,color:"#555",marginTop:4}}>Resets daily · {new Date().toLocaleDateString("en-CA",{weekday:"long",month:"long",day:"numeric"})}</div>
+      </div>
+
+      {/* Section 1: Receive Blanks */}
+      <div style={AS.section}>
+        <div style={AS.sectionHeader}>
+          <div style={AS.sectionLeft}>
+            <span style={AS.sectionIcon}>📦</span>
+            <div>
+              <div style={AS.sectionTitle}>Receive Blanks Orders</div>
+              <div style={AS.sectionSub}>Jobs waiting on blanks to arrive</div>
+            </div>
+          </div>
+          <div style={{...AS.badge, background: blanksRemaining===0?"#4ec9a022":"#f79e7e22", color: blanksRemaining===0?"#4ec9a0":"#f79e7e"}}>
+            {blanksRemaining===0 ? "✓ All received" : `${blanksRemaining} pending`}
+          </div>
+        </div>
+
+        {blankJobs.length===0 ? (
+          <div style={AS.emptyMsg}>No jobs waiting on blanks right now.</div>
+        ) : (
+          blankJobs.map(job => {
+            const checked = !!blanksChecked[job.id];
+            return (
+              <div key={job.id} style={{...AS.taskRow, opacity: checked?0.5:1}}>
+                <div style={AS.taskCheck} onClick={()=>toggleBlanks(job.id)}>
+                  <div style={{...AS.checkbox, background: checked?"#4ec9a0":"transparent", borderColor: checked?"#4ec9a0":"#444"}}>
+                    {checked && <span style={{color:"#0d0d0d",fontSize:12,fontWeight:900}}>✓</span>}
+                  </div>
+                </div>
+                <div style={AS.taskMain} onClick={()=>onSelect(job)}>
+                  <div style={AS.taskCustomer}>
+                    {job.customer}
+                    {job.jobNum && <span style={{fontSize:11,color:"#e8c547",marginLeft:8}}>#{job.jobNum}</span>}
+                    {job.urgency==="rush" && <span style={{...AS.urgencyTag,background:"#ff9f4322",color:"#ff9f43"}}>RUSH</span>}
+                  </div>
+                  <div style={AS.taskProduct}>{job.product} · {job.qty} pcs</div>
+                  {job.notes && <div style={AS.taskNotes}>{job.notes}</div>}
+                </div>
+                <div style={AS.taskRight}>
+                  <div style={{fontSize:11,color:dueDateColor(job.dueDate),fontWeight:600}}>
+                    {daysUntil(job.dueDate)<0?"OVERDUE":`${daysUntil(job.dueDate)}d`}
+                  </div>
+                  {checked && (
+                    <button style={AS.advanceTaskBtn} onClick={()=>advanceAndCheck(job.id,"blanks")}>
+                      → Print Forms
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Section 2: Print Production Forms */}
+      <div style={AS.section}>
+        <div style={AS.sectionHeader}>
+          <div style={AS.sectionLeft}>
+            <span style={AS.sectionIcon}>🖨️</span>
+            <div>
+              <div style={AS.sectionTitle}>Print & Organize Production Forms</div>
+              <div style={AS.sectionSub}>Jobs ready for production forms — blanks received</div>
+            </div>
+          </div>
+          <div style={{...AS.badge, background: formsRemaining===0?"#4ec9a022":"#f79e7e22", color: formsRemaining===0?"#4ec9a0":"#f79e7e"}}>
+            {formsRemaining===0 ? "✓ All printed" : `${formsRemaining} to print`}
+          </div>
+        </div>
+
+        {formJobs.length===0 ? (
+          <div style={AS.emptyMsg}>No forms to print right now.</div>
+        ) : (
+          formJobs.map(job => {
+            const checked = !!formsChecked[job.id];
+            return (
+              <div key={job.id} style={{...AS.taskRow, opacity: checked?0.5:1}}>
+                <div style={AS.taskCheck} onClick={()=>toggleForms(job.id)}>
+                  <div style={{...AS.checkbox, background: checked?"#4ec9a0":"transparent", borderColor: checked?"#4ec9a0":"#444"}}>
+                    {checked && <span style={{color:"#0d0d0d",fontSize:12,fontWeight:900}}>✓</span>}
+                  </div>
+                </div>
+                <div style={AS.taskMain} onClick={()=>onSelect(job)}>
+                  <div style={AS.taskCustomer}>
+                    {job.customer}
+                    {job.jobNum && <span style={{fontSize:11,color:"#e8c547",marginLeft:8}}>#{job.jobNum}</span>}
+                    {job.urgency==="rush" && <span style={{...AS.urgencyTag,background:"#ff9f4322",color:"#ff9f43"}}>RUSH</span>}
+                  </div>
+                  <div style={AS.taskProduct}>{job.product} · {job.qty} pcs</div>
+                  {job.workOrderUrl && <a href={job.workOrderUrl} target="_blank" rel="noreferrer" style={AS.workOrderLink}>📄 Work Order</a>}
+                  {job.notes && <div style={AS.taskNotes}>{job.notes}</div>}
+                </div>
+                <div style={AS.taskRight}>
+                  <div style={{fontSize:11,color:dueDateColor(job.dueDate),fontWeight:600}}>
+                    {daysUntil(job.dueDate)<0?"OVERDUE":`${daysUntil(job.dueDate)}d`}
+                  </div>
+                  {checked && (
+                    <button style={AS.advanceTaskBtn} onClick={()=>advanceAndCheck(job.id,"forms")}>
+                      → {job.type==="embroidery"?"Send to Harrison":"Seps"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+const AS = {
+  section:       { background:"#141414", border:"1px solid #ffffff10", borderRadius:8, overflow:"hidden", marginBottom:20 },
+  sectionHeader: { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"16px 20px", background:"#1a1a1a", borderBottom:"1px solid #ffffff10" },
+  sectionLeft:   { display:"flex", alignItems:"center", gap:14 },
+  sectionIcon:   { fontSize:24 },
+  sectionTitle:  { fontSize:15, fontWeight:700, color:"#f0ede8" },
+  sectionSub:    { fontSize:12, color:"#555", marginTop:2 },
+  badge:         { padding:"4px 12px", borderRadius:12, fontSize:12, fontWeight:700 },
+  emptyMsg:      { padding:"20px", fontSize:13, color:"#333", textAlign:"center" },
+  taskRow:       { display:"flex", alignItems:"center", gap:14, padding:"14px 20px", borderBottom:"1px solid #ffffff08", transition:"opacity 0.2s" },
+  taskCheck:     { flexShrink:0, cursor:"pointer" },
+  checkbox:      { width:22, height:22, borderRadius:4, border:"2px solid", display:"flex", alignItems:"center", justifyContent:"center" },
+  taskMain:      { flex:1, cursor:"pointer" },
+  taskCustomer:  { fontSize:14, fontWeight:700, color:"#f0ede8", display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" },
+  taskProduct:   { fontSize:12, color:"#666", marginTop:2 },
+  taskNotes:     { fontSize:11, color:"#555", marginTop:4, fontStyle:"italic" },
+  workOrderLink: { display:"inline-flex", alignItems:"center", gap:4, fontSize:11, color:"#7eb8f7", marginTop:4 },
+  urgencyTag:    { fontSize:10, fontWeight:800, padding:"2px 7px", borderRadius:3 },
+  taskRight:     { display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6, flexShrink:0, minWidth:110 },
+  advanceTaskBtn:{ padding:"6px 12px", background:"#e8c54720", border:"1px solid #e8c54760", color:"#e8c547", borderRadius:4, cursor:"pointer", fontSize:11, fontWeight:700 },
+};
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const S = {
