@@ -311,7 +311,28 @@ export default function App() {
     await sb.update("jobs",{notes},{id:jobId});
   };
 
-  const handleDragStart = id => { dragJob.current = id; };
+  // ── Full job update ──
+  const updateJob = async (jobId, updates) => {
+    const dbUpdates = {
+      job_num:      updates.jobNum,
+      customer:     updates.customer,
+      client:       updates.customer,
+      product:      updates.product,
+      garment_style:updates.product,
+      qty:          updates.qty,
+      type:         updates.type,
+      current_step: updates.currentStep,
+      step_owner:   defaultStepOwner({type:updates.type}, updates.currentStep),
+      due_date:     updates.dueDate || null,
+      urgency:      updates.urgency,
+      deposit_paid: updates.depositPaid,
+      assigned_to:  updates.assignedTo,
+      notes:        updates.notes,
+    };
+    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...updates, stepOwner: defaultStepOwner({type:updates.type}, updates.currentStep) } : j));
+    notify("Job updated ✓");
+    await sb.update("jobs", dbUpdates, { id: jobId });
+  };
   const handleDrop = async targetId => {
     if (!dragJob.current || dragJob.current === targetId) return;
     const sorted = [...jobs].sort((a,b)=>a.priority-b.priority);
@@ -453,11 +474,12 @@ export default function App() {
         </div>
         <div style={S.viewToggle}>
           {[
-            {id:"board",   label:"⬛ Board"},
-            {id:"list",    label:"☰ List"},
-            {id:"today",   label:"📋 Today"},
-            {id:"admin",   label:"🗂 Admin"},
-            {id:"archive", label:"📁 Archive"},
+            {id:"board",    label:"⬛ Board"},
+            {id:"list",     label:"☰ List"},
+            {id:"overview", label:"🔭 Overview"},
+            {id:"today",    label:"📋 Today"},
+            {id:"admin",    label:"🗂 Admin"},
+            {id:"archive",  label:"📁 Archive"},
           ].map(v=>(
             <button key={v.id} style={{...S.viewBtn,...(view===v.id?S.viewBtnActive:{})}}
               onClick={()=>setView(v.id)}>{v.label}</button>
@@ -467,17 +489,18 @@ export default function App() {
 
       {/* Main */}
       <main style={S.main}>
-        {view==="board"   && <BoardView jobs={visibleJobs} activeRole={activeRole} onAdvance={advanceJob} onArchive={archiveJob} onToggleDeposit={toggleDeposit} onToggleUrgency={toggleUrgency} onAssign={updateAssign} onSelect={j=>{setSelectedJob(j);setView("detail");}} dragOver={dragOver} setDragOver={setDragOver} onDragStart={handleDragStart} onDrop={handleDrop} />}
-        {view==="list"    && <ListView  jobs={visibleJobs} activeRole={activeRole} onAdvance={advanceJob} onArchive={archiveJob} onToggleDeposit={toggleDeposit} onToggleUrgency={toggleUrgency} onAssign={updateAssign} onSelect={j=>{setSelectedJob(j);setView("detail");}} dragOver={dragOver} setDragOver={setDragOver} onDragStart={handleDragStart} onDrop={handleDrop} />}
-        {view==="today"   && <TodayView jobs={activeJobs} activeRole={activeRole} todaySheet={todaySheet} setTodaySheet={updateTodaySheet} todayNotes={todayNotes} setTodayNotes={updateTodayNotes} onAdvance={advanceJob} onSelect={j=>{setSelectedJob(j);setView("detail");}} onReset={resetRunsheet} history={history} notify={notify} />}
-        {view==="admin"   && <AdminView jobs={activeJobs} activeRole={activeRole} onAdvance={advanceJob} onSelect={j=>{setSelectedJob(j);setView("detail");}} notify={notify} />}
-        {view==="archive" && <ArchiveView jobs={archivedJobs} onSelect={j=>{setSelectedJob(j);setView("detail");}} />}
+        {view==="board"    && <BoardView jobs={visibleJobs} activeRole={activeRole} onAdvance={advanceJob} onArchive={archiveJob} onToggleDeposit={toggleDeposit} onToggleUrgency={toggleUrgency} onAssign={updateAssign} onSelect={j=>{setSelectedJob(j);setView("detail");}} dragOver={dragOver} setDragOver={setDragOver} onDragStart={handleDragStart} onDrop={handleDrop} />}
+        {view==="list"     && <ListView  jobs={visibleJobs} activeRole={activeRole} onAdvance={advanceJob} onArchive={archiveJob} onToggleDeposit={toggleDeposit} onToggleUrgency={toggleUrgency} onAssign={updateAssign} onSelect={j=>{setSelectedJob(j);setView("detail");}} dragOver={dragOver} setDragOver={setDragOver} onDragStart={handleDragStart} onDrop={handleDrop} />}
+        {view==="overview" && <OverviewView jobs={activeJobs} onSelect={j=>{setSelectedJob(j);setView("detail");}} />}
+        {view==="today"    && <TodayView jobs={activeJobs} activeRole={activeRole} todaySheet={todaySheet} setTodaySheet={updateTodaySheet} todayNotes={todayNotes} setTodayNotes={updateTodayNotes} onAdvance={advanceJob} onSelect={j=>{setSelectedJob(j);setView("detail");}} onReset={resetRunsheet} history={history} notify={notify} />}
+        {view==="admin"    && <AdminView jobs={activeJobs} activeRole={activeRole} onAdvance={advanceJob} onSelect={j=>{setSelectedJob(j);setView("detail");}} notify={notify} />}
+        {view==="archive"  && <ArchiveView jobs={archivedJobs} onSelect={j=>{setSelectedJob(j);setView("detail");}} />}
       </main>
 
       {view==="detail" && selectedJob && (
         <DetailModal job={jobs.find(j=>j.id===selectedJob.id)||selectedJob}
           activeRole={activeRole} onAdvance={advanceJob} onArchive={archiveJob}
-          onStepBack={stepBackJob}
+          onStepBack={stepBackJob} onUpdateJob={updateJob}
           onToggleDeposit={toggleDeposit} onToggleUrgency={toggleUrgency}
           onAssign={updateAssign} onUpdateNotes={updateNotes}
           onClose={()=>{setView(selectedJob.archived?"archive":"board");setSelectedJob(null);}} />
@@ -739,7 +762,7 @@ function ShippingModal({ job, onConfirm, onClose }) {
 }
 
 // ── Detail Modal ──────────────────────────────────────────────────────────────
-function DetailModal({ job, activeRole, onAdvance, onArchive, onStepBack, onToggleDeposit, onToggleUrgency, onAssign, onUpdateNotes, onClose }) {
+function DetailModal({ job, activeRole, onAdvance, onArchive, onStepBack, onUpdateJob, onToggleDeposit, onToggleUrgency, onAssign, onUpdateNotes, onClose }) {
   const steps      = WORKFLOW[job.type] || WORKFLOW.screenprint_new;
   const currentIdx = getStepIndex(job);
   const next       = getNextStep(job);
@@ -749,6 +772,15 @@ function DetailModal({ job, activeRole, onAdvance, onArchive, onStepBack, onTogg
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesVal, setNotesVal]         = useState(job.notes||"");
   const [showShipping, setShowShipping] = useState(false);
+  const [editing, setEditing]           = useState(false);
+  const [editForm, setEditForm]         = useState({
+    jobNum: job.jobNum||"", customer: job.customer||"", product: job.product||"",
+    qty: job.qty||0, type: job.type||"screenprint_new", currentStep: job.currentStep||"quote",
+    dueDate: job.dueDate||"", urgency: job.urgency||"normal",
+    depositPaid: job.depositPaid||false, assignedTo: job.assignedTo||"", notes: job.notes||"",
+  });
+  const setField = (k,v) => setEditForm(f=>({...f,[k]:v}));
+  const saveEdit = () => { onUpdateJob(job.id, {...editForm, qty:parseInt(editForm.qty)||0}); setEditing(false); };
 
   const saveNotes = () => { onUpdateNotes(job.id, notesVal); setEditingNotes(false); };
 
@@ -776,10 +808,65 @@ function DetailModal({ job, activeRole, onAdvance, onArchive, onStepBack, onTogg
           </div>
           <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
             {job.urgency==="rush"&&<span style={S.rushBadge}>RUSH</span>}
+            {isManager && !editing && (
+              <button style={{...S.closeBtn,width:"auto",padding:"6px 12px",fontSize:12,color:"#e8c547",borderColor:"#e8c54740"}}
+                onClick={()=>setEditing(true)}>✏ Edit</button>
+            )}
             <button style={S.closeBtn} onClick={onClose}>✕</button>
           </div>
         </div>
 
+        {editing ? (
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              {[["Job Number","jobNum","text"],["Customer","customer","text"],["Product","product","text"],["Quantity","qty","number"],["Due Date","dueDate","date"]].map(([label,key,type])=>(
+                <label key={key} style={S.formLabel}>
+                  <span style={S.formLabelText}>{label}</span>
+                  <input style={S.formInput} type={type} value={editForm[key]} onChange={e=>setField(key,e.target.value)} />
+                </label>
+              ))}
+              <label style={S.formLabel}>
+                <span style={S.formLabelText}>Job Type</span>
+                <select style={S.formInput} value={editForm.type} onChange={e=>setField("type",e.target.value)}>
+                  {JOB_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </label>
+              <label style={S.formLabel}>
+                <span style={S.formLabelText}>Current Step</span>
+                <select style={S.formInput} value={editForm.currentStep} onChange={e=>setField("currentStep",e.target.value)}>
+                  {(WORKFLOW[editForm.type]||[]).map(s=><option key={s.id} value={s.id}>{s.icon} {s.label}</option>)}
+                </select>
+              </label>
+              <label style={S.formLabel}>
+                <span style={S.formLabelText}>Urgency</span>
+                <select style={S.formInput} value={editForm.urgency} onChange={e=>setField("urgency",e.target.value)}>
+                  <option value="normal">Normal</option>
+                  <option value="rush">Rush 🔥</option>
+                </select>
+              </label>
+              <label style={S.formLabel}>
+                <span style={S.formLabelText}>Assigned To</span>
+                <select style={S.formInput} value={editForm.assignedTo} onChange={e=>setField("assignedTo",e.target.value)}>
+                  <option value="">Unassigned</option>
+                  {ROLES.map(r=><option key={r.id} value={r.id}>{r.label}</option>)}
+                </select>
+              </label>
+            </div>
+            <label style={{display:"flex",alignItems:"center",gap:10,color:"#888",fontSize:14}}>
+              <input type="checkbox" checked={editForm.depositPaid} onChange={e=>setField("depositPaid",e.target.checked)} />
+              Deposit received
+            </label>
+            <label style={S.formLabel}>
+              <span style={S.formLabelText}>Notes</span>
+              <textarea style={{...S.formInput,resize:"vertical"}} rows={3} value={editForm.notes} onChange={e=>setField("notes",e.target.value)} />
+            </label>
+            <div style={{display:"flex",gap:10,marginTop:8}}>
+              <button style={S.modalAdvanceBtn} onClick={saveEdit}>Save Changes</button>
+              <button style={S.modalSecBtn} onClick={()=>setEditing(false)}>Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <>
         {/* Timeline */}
         <div style={S.timeline}>
           {steps.map((step,i)=>(
@@ -872,6 +959,8 @@ function DetailModal({ job, activeRole, onAdvance, onArchive, onStepBack, onTogg
               ))}
             </select>
           </div>
+        )}
+          </>
         )}
       </div>
     </div>
@@ -1318,6 +1407,139 @@ const AS = {
   urgencyTag:    { fontSize:10, fontWeight:800, padding:"2px 7px", borderRadius:3 },
   taskRight:     { display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6, flexShrink:0, minWidth:110 },
   advanceTaskBtn:{ padding:"6px 12px", background:"#e8c54720", border:"1px solid #e8c54760", color:"#e8c547", borderRadius:4, cursor:"pointer", fontSize:11, fontWeight:700 },
+};
+
+// ── Overview View ─────────────────────────────────────────────────────────────
+function OverviewView({ jobs, onSelect }) {
+  const [search, setSearch]   = useState("");
+  const [sortBy, setSortBy]   = useState("priority");
+  const [filterStep, setFilterStep] = useState("all");
+
+  // Collect all unique steps across workflows
+  const allSteps = [...new Set(Object.values(WORKFLOW).flat().map(s=>s.id))];
+
+  const filtered = jobs
+    .filter(j => filterStep==="all" || j.currentStep===filterStep)
+    .filter(j => !search || [j.customer,j.product,j.jobNum,j.notes].some(v=>v?.toLowerCase().includes(search.toLowerCase())))
+    .sort((a,b) => {
+      if (sortBy==="priority") return a.priority - b.priority;
+      if (sortBy==="due")      return new Date(a.dueDate||"9999") - new Date(b.dueDate||"9999");
+      if (sortBy==="customer") return a.customer.localeCompare(b.customer);
+      return 0;
+    });
+
+  // Group by workflow stage bucket
+  const buckets = [
+    {key:"Pre-Production",  steps:["quote","approved","deposit","blanks","print_forms"]},
+    {key:"Artwork / Setup", steps:["seps","burn","digitizing"]},
+    {key:"Production",      steps:["presscheck","sewout","production"]},
+    {key:"Outgoing",        steps:["readyship","shipped","followup"]},
+  ];
+
+  return (
+    <div style={{maxWidth:1200, margin:"0 auto"}}>
+      {/* Header */}
+      <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:20, flexWrap:"wrap", gap:12}}>
+        <div>
+          <div style={{fontSize:11,color:"#555",letterSpacing:2,textTransform:"uppercase"}}>All Active Jobs</div>
+          <div style={{fontSize:20,fontWeight:800,letterSpacing:3,color:"#f0ede8",marginTop:4}}>OVERVIEW</div>
+        </div>
+        <div style={{display:"flex", gap:10, alignItems:"center", flexWrap:"wrap"}}>
+          <input style={{...S.select, padding:"8px 14px", width:220}} placeholder="Search customer, product, job #…"
+            value={search} onChange={e=>setSearch(e.target.value)} />
+          <select style={S.select} value={filterStep} onChange={e=>setFilterStep(e.target.value)}>
+            <option value="all">All Steps</option>
+            {Object.values(WORKFLOW).flat().filter((s,i,arr)=>arr.findIndex(x=>x.id===s.id)===i).map(s=>(
+              <option key={s.id} value={s.id}>{s.icon} {s.label}</option>
+            ))}
+          </select>
+          <select style={S.select} value={sortBy} onChange={e=>setSortBy(e.target.value)}>
+            <option value="priority">Sort: Priority</option>
+            <option value="due">Sort: Due Date</option>
+            <option value="customer">Sort: Customer</option>
+          </select>
+          <span style={{fontSize:12,color:"#555"}}>{filtered.length} jobs</span>
+        </div>
+      </div>
+
+      {/* Stage summary cards */}
+      <div style={{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:24}}>
+        {buckets.map(b=>{
+          const bJobs = jobs.filter(j=>b.steps.includes(j.currentStep));
+          const rush  = bJobs.filter(j=>j.urgency==="rush").length;
+          const over  = bJobs.filter(j=>j.dueDate&&daysUntil(j.dueDate)<0).length;
+          return (
+            <div key={b.key} style={OV.stageSummary} onClick={()=>setFilterStep(filterStep==="all"?b.steps[0]:"all")}>
+              <div style={OV.stageLabel}>{b.key}</div>
+              <div style={OV.stageCount}>{bJobs.length}</div>
+              <div style={{display:"flex", gap:8, marginTop:6}}>
+                {rush>0 && <span style={{fontSize:10,color:"#ff9f43"}}>🔥 {rush}</span>}
+                {over>0 && <span style={{fontSize:10,color:"#ff4d4d"}}>⚠ {over} overdue</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Job table */}
+      <div style={S.listView}>
+        <div style={{...S.listHeader, gridTemplateColumns:"none", display:"flex"}}>
+          <span style={{width:40}}>Pri</span>
+          <span style={{width:80}}>Job #</span>
+          <span style={{flex:2}}>Customer / Product</span>
+          <span style={{flex:1}}>Type</span>
+          <span style={{flex:1.5}}>Current Step</span>
+          <span style={{flex:1}}>Step Owner</span>
+          <span style={{flex:1}}>Assigned</span>
+          <span style={{flex:1}}>Due</span>
+          <span style={{width:80}}>Deposit</span>
+          <span style={{width:60}}>Urgent</span>
+        </div>
+        {filtered.length===0 && <div style={{padding:"40px",textAlign:"center",color:"#333"}}>No jobs match your filters</div>}
+        {filtered.map(job=>{
+          const step = getStep(job);
+          const dc   = dueDateColor(job.dueDate);
+          const days = daysUntil(job.dueDate);
+          return (
+            <div key={job.id} style={{...S.listRow, cursor:"pointer",
+              borderLeft: job.urgency==="rush"?"3px solid #ff9f43":"3px solid transparent"}}
+              onClick={()=>onSelect(job)}>
+              <span style={{width:40,fontSize:11,color:"#555"}}>#{job.priority}</span>
+              <span style={{width:80,fontSize:11,color:"#e8c547",fontWeight:700}}>{job.jobNum||"—"}</span>
+              <span style={{flex:2}}>
+                <div style={{fontWeight:600,color:"#f0ede8"}}>{job.customer}</div>
+                <div style={{fontSize:11,color:"#666"}}>{job.product} · {job.qty} pcs</div>
+              </span>
+              <span style={{flex:1,fontSize:11,color:job.type==="embroidery"?"#7eb8f7":"#f79e7e"}}>
+                {job.type==="embroidery"?"EMB":job.type==="screenprint_reprint"?"SP Reprint":"SP New"}
+              </span>
+              <span style={{flex:1.5,fontSize:12}}>
+                <span>{step?.icon} {step?.label}</span>
+              </span>
+              <span style={{flex:1,fontSize:11,color:roleColor(job.stepOwner)}}>{roleName(job.stepOwner)||"—"}</span>
+              <span style={{flex:1,fontSize:11,color:roleColor(job.assignedTo)}}>{roleName(job.assignedTo)||"—"}</span>
+              <span style={{flex:1,fontSize:12,color:dc}}>
+                {!job.dueDate?"—":days<0?`${Math.abs(days)}d over`:days===0?"Today":`${days}d`}
+                <div style={{fontSize:10,color:"#555"}}>{job.dueDate}</div>
+              </span>
+              <span style={{width:80,fontSize:11,color:job.depositPaid?"#4ec9a0":"#f79e7e"}}>
+                {job.depositPaid?"✓ Paid":"⚠ Pending"}
+              </span>
+              <span style={{width:60,fontSize:14,textAlign:"center"}}>
+                {job.urgency==="rush"?"🔥":""}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const OV = {
+  stageSummary: { background:"#141414", border:"1px solid #ffffff10", borderRadius:8, padding:"14px 18px", cursor:"pointer", transition:"border-color 0.15s" },
+  stageLabel:   { fontSize:11, color:"#555", letterSpacing:1, textTransform:"uppercase", marginBottom:4 },
+  stageCount:   { fontSize:32, fontWeight:800, color:"#f0ede8" },
 };
 
 // ── Styles ────────────────────────────────────────────────────────────────────
