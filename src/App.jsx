@@ -333,6 +333,7 @@ export default function App() {
     notify("Job updated ✓");
     await sb.update("jobs", dbUpdates, { id: jobId });
   };
+  const handleDragStart = id => { dragJob.current = id; };
   const handleDrop = async targetId => {
     if (!dragJob.current || dragJob.current === targetId) return;
     const sorted = [...jobs].sort((a,b)=>a.priority-b.priority);
