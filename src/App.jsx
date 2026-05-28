@@ -407,7 +407,7 @@ function TodayView({jobs,sheet,setSheet,notes,setNotes,onAdvance,onSelect,onRese
                       <div key={job.id} style={{padding:"8px 10px",borderBottom:"1px solid #ffffff08"}}>
                         <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
                           <span style={{width:20,height:20,borderRadius:"50%",background:fr.color+"22",color:fr.color,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:10,flexShrink:0}}>{idx+1}</span>
-                          <div style={{flex:1,minWidth:0}}>
+                          <div style={{flex:1,minWidth:0,cursor:"pointer"}} onClick={()=>onSelect(job)}>
                             <div style={{fontSize:12,fontWeight:600,color:"#d4d0c8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{job.customer}{job.jobNum&&<span style={{fontSize:9,color:"#e8c547",marginLeft:4}}>#{job.jobNum}</span>}</div>
                             <div style={{fontSize:10,color:"#555"}}>{s?.icon} {s?.label}</div>
                           </div>
