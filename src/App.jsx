@@ -1235,18 +1235,47 @@ function DetailModal({job,allJobs,onAdvance,onStepBack,onArchive,onUpdateJob,onA
             <div style={{fontSize:10,color:"#555",letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>Bundle & Shipping</div>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               <label style={{display:"flex",flexDirection:"column",gap:4}}>
-                <span style={{fontSize:11,color:"#888"}}>Bundle ID (link jobs that ship together)</span>
-                <div style={{display:"flex",gap:8}}>
-                  <input style={{...S.inp,flex:1,fontSize:12}} placeholder="e.g. PAC-SURF-MAY or leave blank"
-                    defaultValue={job.bundleId||""}
-                    onBlur={e=>onSetBundle(job.id,e.target.value||null)}/>
-                  {job.bundleId&&(
-                    <button style={{padding:"4px 10px",background:"#c084fc22",border:"1px solid #c084fc40",color:"#c084fc",borderRadius:4,fontSize:11,cursor:"pointer"}}
-                      onClick={()=>{}}>
-                      {(allJobs||[]).filter(j=>j.bundleId===job.bundleId&&j.id!==job.id).length} linked
-                    </button>
-                  )}
-                </div>
+                <span style={{fontSize:11,color:"#888"}}>Link to another Ready to Ship job</span>
+                {(() => {
+                  const bundleId = job.bundleId || ("BUNDLE-"+job.id.slice(0,8));
+                  const linked = (allJobs||[]).filter(j=>j.bundleId===bundleId&&j.id!==job.id);
+                  const available = (allJobs||[]).filter(j=>j.currentStep==="readyship"&&j.id!==job.id&&(!j.bundleId||j.bundleId===bundleId));
+                  return (
+                    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                      {linked.length>0&&(
+                        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                          {linked.map(j=>(
+                            <div key={j.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"#c084fc15",border:"1px solid #c084fc40",borderRadius:6,padding:"8px 12px"}}>
+                              <div>
+                                <div style={{fontSize:13,fontWeight:600,color:"#c084fc"}}>{j.customer}</div>
+                                <div style={{fontSize:11,color:"#888"}}>{j.product} · {j.qty} pcs</div>
+                              </div>
+                              <button style={{background:"transparent",border:"1px solid #ff4d4d40",color:"#ff4d4d",borderRadius:4,padding:"3px 8px",fontSize:10,cursor:"pointer"}}
+                                onClick={()=>onSetBundle(j.id,null)}>Unlink</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {available.length>0?(
+                        <select style={{...S.inp,fontSize:12}} onChange={e=>{
+                          if(!e.target.value)return;
+                          onSetBundle(job.id,bundleId);
+                          onSetBundle(e.target.value,bundleId);
+                          e.target.value="";
+                        }}>
+                          <option value="">+ Add job to bundle…</option>
+                          {available.filter(j=>!j.bundleId).map(j=>(
+                            <option key={j.id} value={j.id}>{j.customer} — {j.product} ({j.qty}pcs)</option>
+                          ))}
+                        </select>
+                      ):(
+                        <div style={{fontSize:11,color:"#444",fontStyle:"italic"}}>
+                          {linked.length>0?"No more Ready to Ship jobs to add":"No other jobs at Ready to Ship stage"}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </label>
               <label style={{display:"flex",flexDirection:"column",gap:4}}>
                 <span style={{fontSize:11,color:"#888"}}>Shipping Address</span>
@@ -1257,7 +1286,7 @@ function DetailModal({job,allJobs,onAdvance,onStepBack,onArchive,onUpdateJob,onA
               </label>
               {job.bundleId&&(
                 <div style={{fontSize:11,color:"#c084fc",background:"#c084fc10",borderRadius:4,padding:"6px 10px"}}>
-                  📦 Bundled with: {(allJobs||[]).filter(j=>j.bundleId===job.bundleId&&j.id!==job.id).map(j=>`${j.product} (${j.qty}pcs)`).join(", ")||"no other jobs yet"}
+                  📦 Bundle: {job.bundleId}
                 </div>
               )}
             </div>
