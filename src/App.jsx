@@ -108,7 +108,9 @@ const r2j = r => ({
   workOrderUrl:r.work_order_url||null, trackingNum:r.tracking_num||"",
   isPickup:r.is_pickup||false, archived:r.archived||false,
   files:r.files||[], bundleId:r.bundle_id||null,
-  shippingAddress:r.shipping_address||"",
+  shippingAddress: typeof r.shipping_address === "object" && r.shipping_address !== null
+    ? [r.shipping_address.address, r.shipping_address.city, r.shipping_address.province, r.shipping_address.postal].filter(Boolean).join(", ")
+    : r.shipping_address||"",
 });
 const j2d = j => ({
   job_num:j.jobNum, customer:j.customer, client:j.customer,
