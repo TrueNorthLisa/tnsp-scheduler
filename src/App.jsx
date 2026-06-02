@@ -1264,7 +1264,7 @@ function DetailModal({job,allJobs,onAdvance,onStepBack,onArchive,onUpdateJob,onA
                           e.target.value="";
                         }}>
                           <option value="">+ Add job to bundle…</option>
-                          {available.filter(j=>!j.bundleId).map(j=>(
+                          {available.filter(j=>j.bundleId!==bundleId).map(j=>(
                             <option key={j.id} value={j.id}>{j.customer} — {j.product} ({j.qty}pcs)</option>
                           ))}
                         </select>
