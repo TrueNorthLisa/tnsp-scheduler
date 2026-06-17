@@ -93,7 +93,7 @@ const sb = {
     const r = await fetch(`${SB_URL}/storage/v1/object/job-files/${path}`,{method:"POST",headers:{"apikey":SB_ANON,"Authorization":`Bearer ${SB_ANON}`,"Content-Type":file.type},body:file});
     return r.ok ? `${SB_URL}/storage/v1/object/public/job-files/${path}` : null;
   },
-  poll(t,cb,ms=60000) { const id=setInterval(async()=>{const d=await sb.get(t,"?order=priority.asc");if(!d?.error)cb(d);},ms); return()=>clearInterval(id); },
+  poll(t,cb,ms=60000) { const id=setInterval(async()=>{const d=await sb.get(t,"?order=priority.asc&select=*");if(!d?.error)cb(d);},ms); return()=>clearInterval(id); },
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -154,7 +154,7 @@ export default function App() {
   const toast = (msg,type="success")=>{setNotif({msg,type});setTimeout(()=>setNotif(null),3000);};
 
   const loadJobs = async()=>{
-    const d=await sb.get("jobs","?order=priority.asc");
+    const d=await sb.get("jobs","?order=priority.asc&select=*");
     if(d?.error){setDbError(d.error.message);setLoading(false);return;}
     setJobs((d||[]).map(r2j));setLoading(false);
   };
@@ -168,7 +168,26 @@ export default function App() {
     if(Array.isArray(hist)) setRsHistory(hist.map(r=>({date:r.date,notes:r.manager_note||"",lisa:r.lisa||[],brother:r.brother||[],lead_printer:r.lead_printer||[],press_assist:r.press_assist||[],harrison:r.harrison||[],emb_assist:r.emb_assist||[],lupe:r.lupe||[]})));
   };
 
-  useEffect(()=>{loadJobs();loadRS();const stop=sb.poll("jobs",d=>setJobs((d||[]).map(r2j)));return stop;},[]);
+  useEffect(()=>{
+    loadJobs();
+    loadRS();
+    const stop=sb.poll("jobs",d=>{
+      setJobs(prev=>{
+        const fresh=(d||[]).map(r2j);
+        // Merge: keep local state for jobs being actively edited
+        return fresh.map(fj=>{
+          const local=prev.find(lj=>lj.id===fj.id);
+          if(!local) return fj;
+          // Keep whichever files array is longer (upload may be in flight)
+          const files=local.files.length>=fj.files.length?local.files:fj.files;
+          // Keep local shipping if it differs and was set more recently
+          const shippingAddress=local.shippingAddress||fj.shippingAddress;
+          return {...fj,files,shippingAddress};
+        });
+      });
+    });
+    return stop;
+  },[]);
   useEffect(()=>{const l=localStorage.getItem("tnsp_reset");if(l&&l!==todayKey)setTodaySheet({brother:[],lead_printer:[],press_assist:[],harrison:[],emb_assist:[],lupe:[]});localStorage.setItem("tnsp_reset",todayKey);},[]);
 
   const saveRS=async(sheet,notes)=>{
@@ -241,9 +260,15 @@ export default function App() {
     await sb.patch("jobs",{bundle_id:bundleId},{id:jobId});
     toast("Bundle updated ✓");
   };
+  const shippingTimer=useRef({});
   const setShippingAddress=async(jobId,addr)=>{
+    // Update local state immediately
     setJobs(p=>p.map(j=>j.id===jobId?{...j,shippingAddress:addr}:j));
-    await sb.patch("jobs",{shipping_address:addr},{id:jobId});
+    // Debounce Supabase save — wait 800ms after last keystroke
+    clearTimeout(shippingTimer.current[jobId]);
+    shippingTimer.current[jobId]=setTimeout(async()=>{
+      await sb.patch("jobs",{shipping_address:addr},{id:jobId});
+    },800);
   };
   const dragStart=id=>{dragJob.current=id;};
   const drop=async(targetId)=>{
@@ -1281,8 +1306,8 @@ function DetailModal({job,allJobs,onAdvance,onStepBack,onArchive,onUpdateJob,onA
                 <span style={{fontSize:11,color:"#888"}}>Shipping Address</span>
                 <textarea style={{...S.inp,resize:"vertical",fontSize:12}} rows={3}
                   placeholder={"Customer name\nStreet address\nCity, Province, Postal"}
-                  defaultValue={job.shippingAddress||""}
-                  onBlur={e=>onSetShippingAddress(job.id,e.target.value)}/>
+                  value={job.shippingAddress||""}
+                  onChange={e=>onSetShippingAddress(job.id,e.target.value)}/>
               </label>
               {job.bundleId&&(
                 <div style={{fontSize:11,color:"#c084fc",background:"#c084fc10",borderRadius:4,padding:"6px 10px"}}>
