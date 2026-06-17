@@ -1411,6 +1411,37 @@ function AddJobModal({onAdd,onClose}){
   const [f,setF]=useState({jobNum:"",customer:"",product:"",qty:"",type:"screenprint_new",dueDate:"",urgency:"normal",currentStep:"quote",depositPaid:false,notes:""});
   const sf=(k,v)=>setF(x=>({...x,[k]:v}));
   const valid=f.customer&&f.product&&f.dueDate;
+
+  // Auto-populate job number on mount
+  useEffect(()=>{
+    (async()=>{
+      try{
+        const SB_URL=import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY=import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const res=await fetch(`${SB_URL}/rest/v1/settings?key=eq.last_job_num&select=value`,{
+          headers:{"apikey":SB_KEY,"Authorization":`Bearer ${SB_KEY}`}
+        });
+        const data=await res.json();
+        const last=parseInt(data?.[0]?.value)||26421;
+        setF(x=>({...x,jobNum:String(last+1)}));
+      }catch(e){ setF(x=>({...x,jobNum:"26422"})); }
+    })();
+  },[]);
+
+  const handleAdd=async()=>{
+    if(!valid) return;
+    // Save the new last_job_num back to settings
+    try{
+      const SB_URL=import.meta.env.VITE_SUPABASE_URL;
+      const SB_KEY=import.meta.env.VITE_SUPABASE_ANON_KEY;
+      await fetch(`${SB_URL}/rest/v1/settings?key=eq.last_job_num`,{
+        method:"PATCH",
+        headers:{"apikey":SB_KEY,"Authorization":`Bearer ${SB_KEY}`,"Content-Type":"application/json","Prefer":"return=minimal"},
+        body:JSON.stringify({value:f.jobNum})
+      });
+    }catch(e){ console.warn("Could not save job counter",e); }
+    onAdd({...f,qty:parseInt(f.qty)||0});
+  };
   return (
     <div style={S.overlay} onClick={onClose}>
       <div style={{...S.modal,maxWidth:500}} onClick={e=>e.stopPropagation()}>
@@ -1467,7 +1498,7 @@ function AddJobModal({onAdd,onClose}){
         </div>
         <div style={{display:"flex",gap:10,marginTop:20}}>
           <button style={{flex:1,padding:"10px",background:valid?"#e8c547":"#333",color:valid?"#0d0d0d":"#555",border:"none",borderRadius:6,fontWeight:800,cursor:valid?"pointer":"not-allowed",fontSize:13}}
-            disabled={!valid} onClick={()=>valid&&onAdd({...f,qty:parseInt(f.qty)||0})}>Add to Queue</button>
+            disabled={!valid} onClick={handleAdd}>Add to Queue</button>
           <button style={{flex:1,padding:"10px",background:"#ffffff10",color:"#d4d0c8",border:"1px solid #ffffff20",borderRadius:6,cursor:"pointer",fontSize:13}} onClick={onClose}>Cancel</button>
         </div>
       </div>
