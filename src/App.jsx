@@ -74,27 +74,28 @@ const SUPPLIERS = ["S&S Canada", "SanMar Canada", "Private Agent", "AS Colour", 
 
 // ── Styles ──────────────────────────────────────────────────────────────────
 const C = {
-  bg: "#0d0d0d", panel: "#141414", card: "#1a1a1a",
-  border: "#ffffff12", red: "#c8392b", gold: "#e8c547",
-  text: "#f0ede8", muted: "#555", sub: "#888",
-  green: "#4caf7d", orange: "#ff9f43",
+  bg: "#f5f2eb", panel: "#ffffff", card: "#ffffff",
+  border: "#e0dbd4", red: "#c8392b", gold: "#c49a2a",
+  text: "#0d0d0d", muted: "#999", sub: "#666",
+  green: "#2a7a4b", orange: "#e07b20",
+  cardBg: "#faf8f4", headerBg: "#0d0d0d",
 };
 
 const S = {
   root: { minHeight:"100vh", background:C.bg, color:C.text, fontFamily:"'DM Mono','Courier New',monospace", fontSize:13 },
-  header: { background:C.panel, borderBottom:`3px solid ${C.red}`, padding:"12px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:100 },
-  logo: { fontFamily:"'Bebas Neue',sans-serif", fontSize:22, letterSpacing:4, color:C.text },
-  btn: (v="p") => ({ padding:"8px 16px", background:v==="p"?C.red:v==="g"?C.green:v==="y"?C.gold:"transparent", color:v==="y"?"#0d0d0d":C.text, border:`1px solid ${v==="p"?C.red:v==="g"?C.green:v==="y"?C.gold:"#333"}`, borderRadius:3, cursor:"pointer", fontSize:11, letterSpacing:"1px", textTransform:"uppercase", fontFamily:"'DM Mono',monospace", fontWeight:700 }),
-  inp: { background:"#1e1e1e", border:"1px solid #ffffff15", borderBottom:"2px solid #333", color:C.text, padding:"8px 12px", fontSize:13, fontFamily:"'DM Mono',monospace", width:"100%", outline:"none", borderRadius:3, boxSizing:"border-box" },
-  sel: { background:"#1e1e1e", border:"1px solid #ffffff15", borderBottom:"2px solid #333", color:C.text, padding:"8px 12px", fontSize:13, fontFamily:"'DM Mono',monospace", width:"100%", outline:"none", borderRadius:3, appearance:"none", boxSizing:"border-box" },
-  ta: { background:"#1e1e1e", border:"1px solid #ffffff15", borderBottom:"2px solid #333", color:C.text, padding:"8px 12px", fontSize:12, fontFamily:"'DM Mono',monospace", width:"100%", outline:"none", borderRadius:3, resize:"vertical", minHeight:70, boxSizing:"border-box" },
+  header: { background:C.headerBg, borderBottom:`3px solid ${C.red}`, padding:"12px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:100 },
+  logo: { fontFamily:"'Bebas Neue',sans-serif", fontSize:22, letterSpacing:4, color:"#f5f2eb" },
+  btn: (v="p") => ({ padding:"8px 16px", background:v==="p"?C.red:v==="g"?C.green:v==="y"?C.gold:"transparent", color:v==="y"?"#fff":v==="p"||v==="g"?"#fff":C.text, border:`1px solid ${v==="p"?C.red:v==="g"?C.green:v==="y"?C.gold:"#ccc"}`, borderRadius:3, cursor:"pointer", fontSize:11, letterSpacing:"1px", textTransform:"uppercase", fontFamily:"'DM Mono',monospace", fontWeight:700 }),
+  inp: { background:"#fff", border:"1px solid #ddd", borderBottom:"2px solid #ccc", color:C.text, padding:"8px 12px", fontSize:13, fontFamily:"'DM Mono',monospace", width:"100%", outline:"none", borderRadius:3, boxSizing:"border-box" },
+  sel: { background:"#fff", border:"1px solid #ddd", borderBottom:"2px solid #ccc", color:C.text, padding:"8px 12px", fontSize:13, fontFamily:"'DM Mono',monospace", width:"100%", outline:"none", borderRadius:3, appearance:"none", boxSizing:"border-box" },
+  ta: { background:"#fff", border:"1px solid #ddd", borderBottom:"2px solid #ccc", color:C.text, padding:"8px 12px", fontSize:12, fontFamily:"'DM Mono',monospace", width:"100%", outline:"none", borderRadius:3, resize:"vertical", minHeight:70, boxSizing:"border-box" },
   lbl: { fontSize:10, letterSpacing:"1.5px", textTransform:"uppercase", color:C.muted, display:"block", marginBottom:5 },
   card: { background:C.card, border:`1px solid ${C.border}`, borderRadius:6, overflow:"hidden", marginBottom:12 },
-  tag: (c) => ({ fontSize:10, letterSpacing:"1px", textTransform:"uppercase", padding:"3px 8px", background:c+"22", color:c, border:`1px solid ${c}40`, borderRadius:2, display:"inline-block" }),
+  tag: (c) => ({ fontSize:10, letterSpacing:"1px", textTransform:"uppercase", padding:"3px 8px", background:c+"18", color:c, border:`1px solid ${c}40`, borderRadius:2, display:"inline-block" }),
   g2: { display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:14 },
   g3: { display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:14, marginBottom:14 },
-  divider: { height:1, background:"#ffffff10", margin:"14px 0" },
-  check: (done) => ({ width:20, height:20, border:`2px solid ${done?C.green:"#444"}`, borderRadius:3, background:done?C.green:"transparent", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", flexShrink:0, transition:"all .15s" }),
+  divider: { height:1, background:"#e8e2d8", margin:"14px 0" },
+  check: (done) => ({ width:20, height:20, border:`2px solid ${done?C.green:"#ccc"}`, borderRadius:3, background:done?C.green:"#fff", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", flexShrink:0, transition:"all .15s" }),
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -246,8 +247,8 @@ export default function App() {
           <div style={{fontSize:10,color:"#333",letterSpacing:2}}>PRODUCTION SCHEDULER</div>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <button style={{...S.btn(view==="lisa"?"p":"o"),borderColor:view==="lisa"?C.red:"#333"}} onClick={()=>{setView("lisa");setSelJob(null);}}>Lisa</button>
-          <button style={{...S.btn(view==="lupe"?"p":"o"),borderColor:view==="lupe"?C.red:"#333"}} onClick={()=>{setView("lupe");setSelJob(null);}}>Lupe / Production</button>
+          <button style={{...S.btn(view==="lisa"?"p":"o"),borderColor:view==="lisa"?C.red:"#ccc"}} onClick={()=>{setView("lisa");setSelJob(null);}}>Lisa</button>
+          <button style={{...S.btn(view==="lupe"?"p":"o"),borderColor:view==="lupe"?C.red:"#ccc"}} onClick={()=>{setView("lupe");setSelJob(null);}}>Lupe / Production</button>
           <button style={S.btn("p")} onClick={()=>setShowNew(true)}>+ New Job</button>
           <button style={S.btn("o")} onClick={loadJobs}>↺</button>
         </div>
@@ -261,9 +262,9 @@ export default function App() {
           {/* Board */}
           <div style={{flex:1,overflowX:"auto",overflowY:"hidden",display:"flex",gap:0}}>
             {stageGroups.map(sg => (
-              <div key={sg.key} style={{minWidth:280,maxWidth:320,flex:"0 0 300px",borderRight:`1px solid ${C.border}`,display:"flex",flexDirection:"column",height:"100%"}}>
+              <div key={sg.key} style={{minWidth:280,maxWidth:320,flex:"0 0 300px",borderRight:`1px solid ${C.border}`,display:"flex",flexDirection:"column",height:"100%",background:C.bg}}>
                 {/* Column header */}
-                <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`,background:C.panel,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+                <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`,background:"#eee9e0",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
                     <div style={{width:8,height:8,borderRadius:"50%",background:sg.color}}/>
                     <span style={{fontSize:11,letterSpacing:"1.5px",textTransform:"uppercase",color:C.text}}>{sg.label}</span>
@@ -276,7 +277,7 @@ export default function App() {
                     <JobCard key={job.id} job={job} selected={selJob?.id===job.id}
                       onClick={()=>setSelJob(selJob?.id===job.id?null:job)}/>
                   ))}
-                  {sg.jobs.length===0&&<div style={{fontSize:10,color:"#2a2a2a",textAlign:"center",padding:20,letterSpacing:1}}>NO JOBS</div>}
+                  {sg.jobs.length===0&&<div style={{fontSize:10,color:"#bbb",textAlign:"center",padding:20,letterSpacing:1}}>NO JOBS</div>}
                 </div>
               </div>
             ))}
@@ -284,7 +285,7 @@ export default function App() {
 
           {/* Detail panel */}
           {selJob && (
-            <div style={{width:420,borderLeft:`1px solid ${C.border}`,background:C.panel,overflowY:"auto",flexShrink:0}}>
+            <div style={{width:420,borderLeft:`1px solid ${C.border}`,background:"#faf8f4",overflowY:"auto",flexShrink:0}}>
               <JobDetail job={selJob} onSave={saveJob} onDelete={()=>deleteJob(selJob.id)} onClose={()=>setSelJob(null)}/>
             </div>
           )}
@@ -314,7 +315,7 @@ function JobCard({ job, selected, onClick }) {
   const done = isLupe ? lupeDone : lisaDone;
 
   return (
-    <div onClick={onClick} style={{background:selected?"#222":C.card,border:`1px solid ${selected?C.red:C.border}`,borderLeft:`3px solid ${si.color}`,borderRadius:4,padding:"10px 12px",marginBottom:8,cursor:"pointer",transition:"all .15s"}}>
+    <div onClick={onClick} style={{background:selected?"#f0ede8":C.card,border:`1px solid ${selected?C.red:C.border}`,borderLeft:`3px solid ${si.color}`,borderRadius:4,padding:"10px 12px",marginBottom:8,cursor:"pointer",transition:"all .15s"}}>
       <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:6}}>
         <div>
           <div style={{fontSize:11,color:C.gold,fontWeight:700,letterSpacing:1}}>#{job.jobNum}</div>
@@ -332,7 +333,7 @@ function JobCard({ job, selected, onClick }) {
             <span style={{fontSize:9,color:C.muted,letterSpacing:1}}>{isLupe?"PRE-PROD":"CHECKLIST"}</span>
             <span style={{fontSize:9,color:done===total?C.green:C.muted}}>{done}/{total}</span>
           </div>
-          <div style={{height:3,background:"#2a2a2a",borderRadius:2}}>
+          <div style={{height:3,background:"#e0dbd4",borderRadius:2}}>
             <div style={{height:"100%",width:`${(done/total)*100}%`,background:done===total?C.green:C.gold,borderRadius:2,transition:"width .3s"}}/>
           </div>
         </div>
@@ -401,7 +402,7 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
   return (
     <div>
       {/* Detail header */}
-      <div style={{padding:"12px 16px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",background:"#111",position:"sticky",top:0,zIndex:10}}>
+      <div style={{padding:"12px 16px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",background:"#0d0d0d",position:"sticky",top:0,zIndex:10}}>
         <div>
           <div style={{fontSize:11,color:C.gold,letterSpacing:1}}>#{f.jobNum}</div>
           <div style={{fontSize:15,fontWeight:700,color:C.text}}>{f.customer}</div>
@@ -420,7 +421,7 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             {ALL_STAGES.map(s=>(
               <button key={s.key}
-                style={{padding:"5px 10px",background:f.stage===s.key?s.color+"33":"transparent",color:f.stage===s.key?s.color:C.muted,border:`1px solid ${f.stage===s.key?s.color:"#333"}`,borderRadius:3,cursor:"pointer",fontSize:10,letterSpacing:"1px",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}
+                style={{padding:"5px 10px",background:f.stage===s.key?s.color+"33":"transparent",color:f.stage===s.key?s.color:C.muted,border:`1px solid ${f.stage===s.key?s.color:"#ccc"}`,borderRadius:3,cursor:"pointer",fontSize:10,letterSpacing:"1px",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}
                 onClick={()=>update("stage",s.key)}>
                 {s.label}
               </button>
@@ -473,7 +474,7 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
           const done = f.lisaChecklist[item.key];
           return (
             <div key={item.key} onClick={()=>toggleLisa(item.key)}
-              style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",marginBottom:6,background:done?"#4caf7d11":"#1e1e1e",border:`1px solid ${done?C.green+"44":"#333"}`,borderRadius:4,cursor:"pointer",userSelect:"none"}}>
+              style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",marginBottom:6,background:done?"#edf7f1":"#faf8f4",border:`1px solid ${done?C.green+"44":"#ccc"}`,borderRadius:4,cursor:"pointer",userSelect:"none"}}>
               <div style={S.check(done)}>
                 {done&&<span style={{color:"#fff",fontSize:12,lineHeight:1}}>✓</span>}
               </div>
@@ -499,7 +500,7 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
               const done = f.lupeChecklist[item.key];
               return (
                 <div key={item.key} onClick={()=>toggleLupe(item.key)}
-                  style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",marginBottom:6,background:done?"#ff9f4311":"#1e1e1e",border:`1px solid ${done?C.orange+"44":"#333"}`,borderRadius:4,cursor:"pointer",userSelect:"none"}}>
+                  style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",marginBottom:6,background:done?"#fff4eb":"#faf8f4",border:`1px solid ${done?C.orange+"44":"#ccc"}`,borderRadius:4,cursor:"pointer",userSelect:"none"}}>
                   <div style={{...S.check(done),borderColor:done?C.orange:"#444",background:done?C.orange:"transparent"}}>
                     {done&&<span style={{color:"#fff",fontSize:12,lineHeight:1}}>✓</span>}
                   </div>
