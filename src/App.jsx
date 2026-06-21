@@ -191,18 +191,25 @@ export default function App() {
 
   const addJob = async (fields) => {
     try {
-      // Get next job number
-      const settings = await sb.get("settings", "?key=eq.last_job_num&select=value");
-      const last = parseInt(settings?.[0]?.value) || 26421;
-      const nextNum = String(last + 1);
-      await sb.patch("settings", { value: nextNum }, { key: "last_job_num" });
+      // Get next job number — fall back gracefully if settings table missing
+      let nextNum = String(Date.now()).slice(-5); // fallback
+      try {
+        const settings = await sb.get("settings", "?key=eq.last_job_num&select=value");
+        if (Array.isArray(settings) && settings[0]?.value) {
+          const last = parseInt(settings[0].value) || 26421;
+          nextNum = String(last + 1);
+          await sb.patch("settings", { value: nextNum }, { key: "last_job_num" });
+        }
+      } catch(e) {
+        console.warn("Could not get job counter, using fallback:", e);
+      }
 
       const [r] = await sb.post("jobs", {
         job_num: nextNum,
         customer: fields.customer,
         company: fields.company,
         product: fields.product,
-        qty: fields.qty,
+        qty: parseInt(fields.qty)||0,
         due_date: fields.dueDate,
         decoration_type: fields.decorationType,
         notes: fields.notes,
@@ -213,7 +220,10 @@ export default function App() {
       });
       setJobs(prev => [...prev, r2j(r)]);
       showToast(`Job #${nextNum} created ✓`);
-    } catch(e) { showToast("Failed to create job"); }
+    } catch(e) {
+      console.error("addJob error:", e);
+      showToast("Failed to create job: " + e.message);
+    }
   };
 
   const deleteJob = async (id) => {
