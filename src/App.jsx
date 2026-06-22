@@ -125,6 +125,7 @@ function r2j(r) {
     productionAssignee: r.production_assignee || "",
     priority: r.priority || 99,
     createdAt: r.created_at || "",
+    files: r.files || [],
   };
 }
 
@@ -183,6 +184,7 @@ export default function App() {
         lisa_checklist: job.lisaChecklist,
         lupe_checklist: job.lupeChecklist,
         production_assignee: job.productionAssignee,
+        files: job.files || [],
       }, { id: job.id });
       setJobs(prev => prev.map(j=>j.id===job.id?job:j));
       if (selJob?.id===job.id) setSelJob(job);
@@ -366,60 +368,120 @@ function JobCard({ job, selected, onClick, onDelete }) {
   );
 }
 
+// ── Field component — must be OUTSIDE JobDetail to avoid remount on every keystroke
+function Field({ label, k, type="text", opts, value, onChange }) {
+  return (
+    <div style={{marginBottom:12}}>
+      <label style={S.lbl}>{label}</label>
+      {opts ? (
+        <select style={S.sel} value={value||""} onChange={e=>onChange(k,e.target.value)}>
+          <option value="">— Select —</option>
+          {opts.map(o=><option key={o} value={o}>{o}</option>)}
+        </select>
+      ) : (
+        <input style={S.inp} type={type} value={value||""} onChange={e=>onChange(k,e.target.value)}/>
+      )}
+    </div>
+  );
+}
+
+// ── File Upload component
+function FileAttachments({ jobId, files, onFilesChanged }) {
+  const [uploading, setUploading] = useState(false);
+  const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+  const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  const uploadFile = async (file) => {
+    setUploading(true);
+    try {
+      const path = `jobs/${jobId}/${Date.now()}_${file.name}`;
+      const res = await fetch(`${SB_URL}/storage/v1/object/job-files/${path}`, {
+        method: "POST",
+        headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, "Content-Type": file.type||"application/octet-stream" },
+        body: file,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      const newFiles = [...(files||[]), { name: file.name, path, size: file.size }];
+      onFilesChanged(newFiles);
+    } catch(e) { alert("Upload failed: "+e.message); }
+    setUploading(false);
+  };
+
+  const deleteFile = async (path, idx) => {
+    if (!confirm("Remove this file?")) return;
+    try {
+      await fetch(`${SB_URL}/storage/v1/object/job-files/${path}`, {
+        method: "DELETE",
+        headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` },
+      });
+    } catch(e) {}
+    const newFiles = (files||[]).filter((_,i)=>i!==idx);
+    onFilesChanged(newFiles);
+  };
+
+  const getUrl = (path) => `${SB_URL}/storage/v1/object/public/job-files/${path}`;
+
+  return (
+    <div>
+      <div style={{fontSize:10,letterSpacing:"2px",color:C.red,textTransform:"uppercase",marginBottom:10,fontWeight:700}}>Attachments</div>
+      {/* Existing files */}
+      {(files||[]).map((f,i)=>(
+        <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",background:"#faf8f4",border:`1px solid ${C.border}`,borderRadius:4,marginBottom:6}}>
+          <span style={{fontSize:11,color:"#7eb8f7"}}>📎</span>
+          <a href={getUrl(f.path)} target="_blank" rel="noopener noreferrer"
+            style={{flex:1,fontSize:12,color:C.text,textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+            {f.name}
+          </a>
+          <span style={{fontSize:10,color:C.muted,flexShrink:0}}>{f.size ? Math.round(f.size/1024)+"KB" : ""}</span>
+          <button onClick={()=>deleteFile(f.path,i)}
+            style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:13,padding:"0 2px",flexShrink:0}}>✕</button>
+        </div>
+      ))}
+      {/* Upload zone */}
+      <label style={{display:"flex",alignItems:"center",gap:8,padding:"10px",border:`2px dashed ${C.border}`,borderRadius:4,cursor:"pointer",background:uploading?"#f5f2eb":"transparent"}}>
+        <input type="file" multiple style={{display:"none"}}
+          onChange={e=>Array.from(e.target.files).forEach(uploadFile)}/>
+        <span style={{fontSize:12,color:C.muted,letterSpacing:"1px"}}>{uploading?"Uploading…":"+ Attach files (drag & drop or click)"}</span>
+      </label>
+    </div>
+  );
+}
+
 // ── Job Detail Panel ─────────────────────────────────────────────────────────
 function JobDetail({ job, onSave, onDelete, onClose }) {
   const [f, setF] = useState({...job});
   const [dirty, setDirty] = useState(false);
 
-  // Sync when job prop changes (e.g. after external save)
   useEffect(()=>{ setF({...job}); setDirty(false); },[job.id]);
 
-  // Update local state only — no autosave for text fields
-  const update = (k,v) => {
-    setF(x=>({...x,[k]:v}));
-    setDirty(true);
-  };
+  const update = (k,v) => { setF(x=>({...x,[k]:v})); setDirty(true); };
 
-  // Checkboxes still save immediately
   const toggleLisa = (key) => {
     const updated = {...f, lisaChecklist:{...f.lisaChecklist,[key]:!f.lisaChecklist[key]}};
-    setF(updated); setDirty(false);
-    onSave(updated);
+    setF(updated); setDirty(false); onSave(updated);
   };
 
   const toggleLupe = (key) => {
     const updated = {...f, lupeChecklist:{...f.lupeChecklist,[key]:!f.lupeChecklist[key]}};
-    setF(updated); setDirty(false);
-    onSave(updated);
+    setF(updated); setDirty(false); onSave(updated);
   };
 
   const handleSave = () => { onSave(f); setDirty(false); };
+
+  const handleFilesChanged = (newFiles) => {
+    const updated = {...f, files: newFiles};
+    setF(updated); onSave(updated);
+  };
 
   const lisaAllDone = LISA_CHECKLIST.every(c=>f.lisaChecklist[c.key]);
   const lupeAllDone = LUPE_CHECKLIST.every(c=>f.lupeChecklist[c.key]);
 
   const advanceStage = (toStage) => {
     const updated = {...f, stage:toStage};
-    setF(updated); setDirty(false);
-    onSave(updated);
+    setF(updated); setDirty(false); onSave(updated);
   };
 
   const si = stageInfo(f.stage);
-
-  const Field = ({label,k,type="text",opts}) => (
-    <div style={{marginBottom:12}}>
-      <label style={S.lbl}>{label}</label>
-      {opts ? (
-        <select style={S.sel} value={f[k]||""} onChange={e=>update(k,e.target.value)}>
-          <option value="">— Select —</option>
-          {opts.map(o=><option key={o} value={o}>{o}</option>)}
-        </select>
-      ) : (
-        <input style={S.inp} type={type} value={f[k]||""} onChange={e=>update(k,e.target.value)}/>
-
-      )}
-    </div>
-  );
 
   return (
     <div>
@@ -427,7 +489,7 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
       <div style={{padding:"12px 16px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",background:"#0d0d0d",position:"sticky",top:0,zIndex:10}}>
         <div>
           <div style={{fontSize:11,color:C.gold,letterSpacing:1}}>#{f.jobNum}</div>
-          <div style={{fontSize:15,fontWeight:700,color:C.text}}>{f.customer}</div>
+          <div style={{fontSize:15,fontWeight:700,color:"#f5f2eb"}}>{f.customer}</div>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
           <span style={S.tag(si.color)}>{si.label}</span>
@@ -456,28 +518,28 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
         {/* Job Info */}
         <div style={{fontSize:10,letterSpacing:"2px",color:C.red,textTransform:"uppercase",marginBottom:12,fontWeight:700}}>Job Info</div>
         <div style={S.g2}>
-          <Field label="Customer Name" k="customer"/>
-          <Field label="Company" k="company"/>
+          <Field label="Customer Name" k="customer" value={f.customer} onChange={update}/>
+          <Field label="Company" k="company" value={f.company} onChange={update}/>
         </div>
         <div style={S.g3}>
-          <Field label="Job #" k="jobNum"/>
-          <Field label="Quantity" k="qty" type="number"/>
-          <Field label="Due Date" k="dueDate" type="date"/>
+          <Field label="Job #" k="jobNum" value={f.jobNum} onChange={update}/>
+          <Field label="Quantity" k="qty" type="number" value={f.qty} onChange={update}/>
+          <Field label="Due Date" k="dueDate" type="date" value={f.dueDate} onChange={update}/>
         </div>
-        <Field label="Product / Garment" k="product"/>
-        <Field label="Decoration Type" k="decorationType" opts={["Screen Printing","Embroidery","DTF","Vinyl","Mixed"]}/>
+        <Field label="Product / Garment" k="product" value={f.product} onChange={update}/>
+        <Field label="Decoration Type" k="decorationType" opts={["Screen Printing","Embroidery","DTF","Vinyl","Mixed"]} value={f.decorationType} onChange={update}/>
 
         <div style={S.divider}/>
 
-        {/* Product ordering */}
+        {/* Product Details */}
         <div style={{fontSize:10,letterSpacing:"2px",color:C.red,textTransform:"uppercase",marginBottom:12,fontWeight:700}}>Product Details</div>
         <div style={S.g2}>
-          <Field label="Supplier" k="supplier" opts={SUPPLIERS}/>
-          <Field label="Style #" k="styleNum"/>
+          <Field label="Supplier" k="supplier" opts={SUPPLIERS} value={f.supplier} onChange={update}/>
+          <Field label="Style #" k="styleNum" value={f.styleNum} onChange={update}/>
         </div>
         <div style={S.g2}>
-          <Field label="Colour" k="colour"/>
-          <Field label="ETA" k="eta" type="date"/>
+          <Field label="Colour" k="colour" value={f.colour} onChange={update}/>
+          <Field label="ETA" k="eta" type="date" value={f.eta} onChange={update}/>
         </div>
 
         <div style={S.divider}/>
@@ -490,22 +552,24 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
 
         <div style={S.divider}/>
 
+        {/* File attachments */}
+        <FileAttachments jobId={job.id} files={f.files||[]} onFilesChanged={handleFilesChanged}/>
+
+        <div style={S.divider}/>
+
         {/* Lisa's Checklist */}
         <div style={{fontSize:10,letterSpacing:"2px",color:C.red,textTransform:"uppercase",marginBottom:12,fontWeight:700}}>Lisa's Checklist</div>
         {LISA_CHECKLIST.map(item=>{
           const done = f.lisaChecklist[item.key];
           return (
             <div key={item.key} onClick={()=>toggleLisa(item.key)}
-              style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",marginBottom:6,background:done?"#edf7f1":"#faf8f4",border:`1px solid ${done?C.green+"44":"#ccc"}`,borderRadius:4,cursor:"pointer",userSelect:"none"}}>
-              <div style={S.check(done)}>
-                {done&&<span style={{color:"#fff",fontSize:12,lineHeight:1}}>✓</span>}
-              </div>
+              style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",marginBottom:6,background:done?"#edf7f1":"#faf8f4",border:`1px solid ${done?C.green+"66":"#ddd"}`,borderRadius:4,cursor:"pointer",userSelect:"none"}}>
+              <div style={S.check(done)}>{done&&<span style={{color:"#fff",fontSize:12,lineHeight:1}}>✓</span>}</div>
               <span style={{fontSize:13,color:done?C.green:C.text}}>{item.label}</span>
             </div>
           );
         })}
 
-        {/* Move to Lupe button */}
         {lisaAllDone && isLisaStage(f.stage) && (
           <button style={{...S.btn("g"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}}
             onClick={()=>advanceStage("pre_production")}>
@@ -513,8 +577,8 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
           </button>
         )}
 
-        {/* Lupe's Pre-Production Checklist */}
-        {(isLupeStage(f.stage)||f.stage==="ready_for_lupe") && (
+        {/* Lupe's Checklist */}
+        {isLupeStage(f.stage) && (
           <>
             <div style={S.divider}/>
             <div style={{fontSize:10,letterSpacing:"2px",color:C.orange,textTransform:"uppercase",marginBottom:12,fontWeight:700}}>Lupe's Pre-Production</div>
@@ -522,8 +586,8 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
               const done = f.lupeChecklist[item.key];
               return (
                 <div key={item.key} onClick={()=>toggleLupe(item.key)}
-                  style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",marginBottom:6,background:done?"#fff4eb":"#faf8f4",border:`1px solid ${done?C.orange+"44":"#ccc"}`,borderRadius:4,cursor:"pointer",userSelect:"none"}}>
-                  <div style={{...S.check(done),borderColor:done?C.orange:"#444",background:done?C.orange:"transparent"}}>
+                  style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",marginBottom:6,background:done?"#fff4eb":"#faf8f4",border:`1px solid ${done?C.orange+"66":"#ddd"}`,borderRadius:4,cursor:"pointer",userSelect:"none"}}>
+                  <div style={{...S.check(done),borderColor:done?C.orange:"#ccc",background:done?C.orange:"#fff"}}>
                     {done&&<span style={{color:"#fff",fontSize:12,lineHeight:1}}>✓</span>}
                   </div>
                   <span style={{fontSize:13,color:done?C.orange:C.text}}>{item.label}</span>
@@ -531,7 +595,6 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
               );
             })}
 
-            {/* Production assignee */}
             {f.stage==="pre_production"&&(
               <div style={{marginTop:12}}>
                 <label style={S.lbl}>Assign to Production</label>
@@ -542,33 +605,21 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
               </div>
             )}
 
-            {/* Send to production */}
             {lupeAllDone && f.stage==="pre_production" && f.productionAssignee && (
               <button style={{...S.btn("p"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}}
                 onClick={()=>advanceStage("in_production")}>
                 → Send to Production ({f.productionAssignee})
               </button>
             )}
-
-            {/* Post-production flow */}
-            {f.stage==="in_production"&&(
-              <button style={{...S.btn("o"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}}
-                onClick={()=>advanceStage("boxing")}>→ Move to Boxing</button>
-            )}
-            {f.stage==="boxing"&&(
-              <button style={{...S.btn("o"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}}
-                onClick={()=>advanceStage("qc")}>→ Move to QC</button>
-            )}
-            {f.stage==="qc"&&(
-              <button style={{...S.btn("g"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}}
-                onClick={()=>advanceStage("shipping")}>✓ QC Passed — Move to Shipping</button>
-            )}
+            {f.stage==="in_production"&&<button style={{...S.btn("o"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}} onClick={()=>advanceStage("boxing")}>→ Move to Boxing</button>}
+            {f.stage==="boxing"&&<button style={{...S.btn("o"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}} onClick={()=>advanceStage("qc")}>→ Move to QC</button>}
+            {f.stage==="qc"&&<button style={{...S.btn("g"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}} onClick={()=>advanceStage("shipping")}>✓ QC Passed — Move to Shipping</button>}
           </>
         )}
 
         <div style={S.divider}/>
         <div style={{display:"flex",gap:8}}>
-          <button style={{...S.btn("p"),flex:1,padding:"12px",fontSize:12,letterSpacing:2,position:"relative"}} onClick={handleSave}>
+          <button style={{...S.btn(dirty?"p":"o"),flex:1,padding:"12px",fontSize:12,letterSpacing:2}} onClick={handleSave}>
             {dirty ? "● Save Changes" : "✓ Saved"}
           </button>
           <button style={{...S.btn("o"),color:"#c8392b",borderColor:"#c8392b33",padding:"10px 16px"}} onClick={onDelete}>Delete</button>
