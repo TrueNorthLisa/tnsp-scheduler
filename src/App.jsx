@@ -285,7 +285,8 @@ export default function App() {
                 <div style={{flex:1,overflowY:"auto",padding:"10px 10px"}}>
                   {sg.jobs.map(job => (
                     <JobCard key={job.id} job={job} selected={selJob?.id===job.id}
-                      onClick={()=>setSelJob(selJob?.id===job.id?null:job)}/>
+                      onClick={()=>setSelJob(selJob?.id===job.id?null:job)}
+                      onDelete={deleteJob}/>
                   ))}
                   {sg.jobs.length===0&&<div style={{fontSize:10,color:"#bbb",textAlign:"center",padding:20,letterSpacing:1}}>NO JOBS</div>}
                 </div>
@@ -316,7 +317,7 @@ export default function App() {
 }
 
 // ── Job Card ─────────────────────────────────────────────────────────────────
-function JobCard({ job, selected, onClick }) {
+function JobCard({ job, selected, onClick, onDelete }) {
   const si = stageInfo(job.stage);
   const lisaDone = LISA_CHECKLIST.filter(c=>job.lisaChecklist[c.key]).length;
   const lupeDone = LUPE_CHECKLIST.filter(c=>job.lupeChecklist[c.key]).length;
@@ -325,29 +326,41 @@ function JobCard({ job, selected, onClick }) {
   const done = isLupe ? lupeDone : lisaDone;
 
   return (
-    <div onClick={onClick} style={{background:selected?"#f0ede8":C.card,border:`1px solid ${selected?C.red:C.border}`,borderLeft:`3px solid ${si.color}`,borderRadius:4,padding:"10px 12px",marginBottom:8,cursor:"pointer",transition:"all .15s"}}>
-      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:6}}>
-        <div>
-          <div style={{fontSize:11,color:C.gold,fontWeight:700,letterSpacing:1}}>#{job.jobNum}</div>
-          <div style={{fontSize:13,fontWeight:700,color:C.text,marginTop:2}}>{job.customer}</div>
-          {job.company&&<div style={{fontSize:11,color:C.sub}}>{job.company}</div>}
+    <div style={{background:selected?"#f0ede8":C.card,border:`1px solid ${selected?C.red:C.border}`,borderLeft:`3px solid ${si.color}`,borderRadius:4,marginBottom:8,boxShadow:"0 1px 3px rgba(0,0,0,.06)",overflow:"hidden"}}>
+      <div onClick={onClick} style={{padding:"10px 12px",cursor:"pointer",transition:"all .15s"}}>
+        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:6}}>
+          <div>
+            <div style={{fontSize:11,color:C.gold,fontWeight:700,letterSpacing:1}}>#{job.jobNum}</div>
+            <div style={{fontSize:13,fontWeight:700,color:C.text,marginTop:2}}>{job.customer}</div>
+            {job.company&&<div style={{fontSize:11,color:C.sub}}>{job.company}</div>}
+          </div>
+          {job.dueDate&&<div style={{fontSize:10,color:C.muted,textAlign:"right"}}>{new Date(job.dueDate+"T00:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</div>}
         </div>
-        {job.dueDate&&<div style={{fontSize:10,color:C.muted,textAlign:"right"}}>{new Date(job.dueDate+"T00:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</div>}
+        <div style={{fontSize:11,color:C.sub,marginBottom:6}}>{job.product}{job.qty?` · ${job.qty} units`:""}</div>
+        {job.decorationType&&<span style={{...S.tag("#7eb8f7"),fontSize:9,marginBottom:6}}>{job.decorationType}</span>}
+        {total>0&&(
+          <div style={{marginTop:8}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+              <span style={{fontSize:9,color:C.muted,letterSpacing:1}}>{isLupe?"PRE-PROD":"CHECKLIST"}</span>
+              <span style={{fontSize:9,color:done===total?C.green:C.muted}}>{done}/{total}</span>
+            </div>
+            <div style={{height:3,background:"#e0dbd4",borderRadius:2}}>
+              <div style={{height:"100%",width:`${(done/total)*100}%`,background:done===total?C.green:C.gold,borderRadius:2,transition:"width .3s"}}/>
+            </div>
+          </div>
+        )}
       </div>
-      <div style={{fontSize:11,color:C.sub,marginBottom:6}}>{job.product}{job.qty?` · ${job.qty} units`:""}</div>
-      {job.decorationType&&<span style={{...S.tag("#7eb8f7"),fontSize:9,marginBottom:6}}>{job.decorationType}</span>}
-      {/* Checklist progress */}
-      {total>0&&(
-        <div style={{marginTop:8}}>
-          <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-            <span style={{fontSize:9,color:C.muted,letterSpacing:1}}>{isLupe?"PRE-PROD":"CHECKLIST"}</span>
-            <span style={{fontSize:9,color:done===total?C.green:C.muted}}>{done}/{total}</span>
-          </div>
-          <div style={{height:3,background:"#e0dbd4",borderRadius:2}}>
-            <div style={{height:"100%",width:`${(done/total)*100}%`,background:done===total?C.green:C.gold,borderRadius:2,transition:"width .3s"}}/>
-          </div>
-        </div>
-      )}
+      {/* Quick action bar */}
+      <div style={{borderTop:`1px solid ${C.border}`,display:"flex"}}>
+        <button onClick={onClick} style={{flex:1,padding:"5px 8px",background:"transparent",border:"none",color:C.muted,fontSize:10,letterSpacing:"1px",cursor:"pointer",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>
+          {selected ? "▲ Close" : "▼ Open"}
+        </button>
+        <button
+          onClick={e=>{e.stopPropagation();if(window.confirm(`Delete job #${job.jobNum} — ${job.customer}?`))onDelete(job.id);}}
+          style={{padding:"5px 12px",background:"transparent",border:"none",borderLeft:`1px solid ${C.border}`,color:"#c8392b",fontSize:10,letterSpacing:"1px",cursor:"pointer",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>
+          ✕ Delete
+        </button>
+      </div>
     </div>
   );
 }
