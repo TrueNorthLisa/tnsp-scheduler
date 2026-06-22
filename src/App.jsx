@@ -44,11 +44,12 @@ const LISA_STAGES = [
 ];
 
 const LUPE_STAGES = [
-  { key: "pre_production",   label: "Pre-Production",     color: "#ff9f43" },
-  { key: "in_production",    label: "In Production",      color: "#c8392b" },
-  { key: "boxing",           label: "Boxing",             color: "#a29bfe" },
-  { key: "qc",               label: "QC",                 color: "#fd79a8" },
-  { key: "shipping",         label: "Shipping / Pickup",  color: "#00cec9" },
+  { key: "ready_for_lupe",   label: "Incoming from Lisa",  color: "#4caf7d" },
+  { key: "pre_production",   label: "Pre-Production",      color: "#ff9f43" },
+  { key: "in_production",    label: "In Production",       color: "#c8392b" },
+  { key: "boxing",           label: "Boxing",              color: "#a29bfe" },
+  { key: "qc",               label: "QC",                  color: "#fd79a8" },
+  { key: "shipping",         label: "Shipping / Pickup",   color: "#00cec9" },
 ];
 
 const ALL_STAGES = [...LISA_STAGES, ...LUPE_STAGES];
@@ -238,8 +239,8 @@ export default function App() {
   };
 
   // Filter jobs by view
-  const lisaJobs = jobs.filter(j => isLisaStage(j.stage) || j.stage==="new_sale" || j.stage==="in_progress" || j.stage==="ready_for_lupe");
-  const lupeJobs = jobs.filter(j => isLupeStage(j.stage));
+  const lisaJobs = jobs.filter(j => LISA_STAGES.some(s=>s.key===j.stage));
+  const lupeJobs = jobs.filter(j => LUPE_STAGES.some(s=>s.key===j.stage));
 
   const visibleJobs = view==="lisa" ? lisaJobs : lupeJobs;
 
@@ -570,9 +571,9 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
           );
         })}
 
-        {lisaAllDone && isLisaStage(f.stage) && (
+        {lisaAllDone && LISA_STAGES.some(s=>s.key===f.stage) && (
           <button style={{...S.btn("g"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}}
-            onClick={()=>advanceStage("pre_production")}>
+            onClick={()=>advanceStage("ready_for_lupe")}>
             ✓ All Done — Send to Lupe →
           </button>
         )}
@@ -581,7 +582,18 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
         {isLupeStage(f.stage) && (
           <>
             <div style={S.divider}/>
-            <div style={{fontSize:10,letterSpacing:"2px",color:C.orange,textTransform:"uppercase",marginBottom:12,fontWeight:700}}>Lupe's Pre-Production</div>
+            {f.stage==="ready_for_lupe" ? (
+              <>
+                <div style={{fontSize:10,letterSpacing:"2px",color:C.green,textTransform:"uppercase",marginBottom:12,fontWeight:700}}>✓ Ready from Lisa</div>
+                <div style={{fontSize:12,color:C.sub,marginBottom:16,fontFamily:"'DM Sans',sans-serif"}}>Lisa has completed all checklist items. Start pre-production when ready.</div>
+                <button style={{...S.btn("p"),width:"100%",padding:"12px",fontSize:12,letterSpacing:2}}
+                  onClick={()=>advanceStage("pre_production")}>
+                  → Start Pre-Production
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{fontSize:10,letterSpacing:"2px",color:C.orange,textTransform:"uppercase",marginBottom:12,fontWeight:700}}>Lupe's Pre-Production</div>
             {LUPE_CHECKLIST.map(item=>{
               const done = f.lupeChecklist[item.key];
               return (
@@ -614,6 +626,8 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
             {f.stage==="in_production"&&<button style={{...S.btn("o"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}} onClick={()=>advanceStage("boxing")}>→ Move to Boxing</button>}
             {f.stage==="boxing"&&<button style={{...S.btn("o"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}} onClick={()=>advanceStage("qc")}>→ Move to QC</button>}
             {f.stage==="qc"&&<button style={{...S.btn("g"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}} onClick={()=>advanceStage("shipping")}>✓ QC Passed — Move to Shipping</button>}
+            </>
+            )}
           </>
         )}
 
