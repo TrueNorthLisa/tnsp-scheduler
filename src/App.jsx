@@ -590,6 +590,10 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
                   onClick={()=>advanceStage("pre_production")}>
                   → Start Pre-Production
                 </button>
+                <button style={{...S.btn("o"),width:"100%",padding:"10px",marginTop:8,fontSize:11,letterSpacing:1}}
+                  onClick={()=>advanceStage("in_progress")}>
+                  ← Return to Lisa
+                </button>
               </>
             ) : (
               <>
@@ -621,6 +625,12 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
               <button style={{...S.btn("p"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}}
                 onClick={()=>advanceStage("in_production")}>
                 → Send to Production ({f.productionAssignee})
+              </button>
+            )}
+            {f.stage==="pre_production" && (
+              <button style={{...S.btn("o"),width:"100%",padding:"10px",marginTop:8,fontSize:11,letterSpacing:1}}
+                onClick={()=>advanceStage("in_progress")}>
+                ← Return to Lisa
               </button>
             )}
             {f.stage==="in_production"&&<button style={{...S.btn("o"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}} onClick={()=>advanceStage("boxing")}>→ Move to Boxing</button>}
