@@ -48,8 +48,8 @@ const LUPE_STAGES = [
   { key: "pre_production",   label: "Pre-Production",      color: "#ff9f43" },
   { key: "in_production",    label: "In Production",       color: "#c8392b" },
   { key: "boxing",           label: "Boxing",              color: "#a29bfe" },
-  { key: "qc",               label: "QC",                  color: "#fd79a8" },
-  { key: "shipping",         label: "Shipping / Pickup",   color: "#00cec9" },
+  { key: "ready_to_ship",    label: "Ready to Ship",       color: "#00cec9" },
+  { key: "shipping",         label: "Shipped / Picked Up", color: "#2a7a4b" },
 ];
 
 const ALL_STAGES = [...LISA_STAGES, ...LUPE_STAGES];
@@ -131,6 +131,7 @@ function r2j(r) {
     lupeChecklist: r.lupe_checklist || {},
     productionAssignee: r.production_assignee || "",
     priority: r.priority || 99,
+    multiOrder: r.multi_order || false,
     createdAt: r.created_at || "",
     files: r.files || [],
   };
@@ -293,12 +294,54 @@ export default function App() {
                 </div>
                 {/* Jobs */}
                 <div style={{flex:1,overflowY:"auto",padding:"10px 10px"}}>
-                  {sg.jobs.map(job => (
-                    <JobCard key={job.id} job={job} selected={selJob?.id===job.id}
-                      onClick={()=>setSelJob(selJob?.id===job.id?null:job)}
-                      onDelete={deleteJob}/>
-                  ))}
-                  {sg.jobs.length===0&&<div style={{fontSize:10,color:"#bbb",textAlign:"center",padding:20,letterSpacing:1}}>NO JOBS</div>}
+                  {sg.key==="ready_to_ship" ? (
+                    // Group by customer for combined shipment visibility
+                    (() => {
+                      const multiJobs = sg.jobs.filter(j=>j.multiOrder);
+                      const singleJobs = sg.jobs.filter(j=>!j.multiOrder);
+                      // Group multi-order jobs by customer
+                      const groups = {};
+                      multiJobs.forEach(j=>{
+                        const key = j.company||j.customer||"Unknown";
+                        if(!groups[key]) groups[key]=[];
+                        groups[key].push(j);
+                      });
+                      return <>
+                        {Object.entries(groups).map(([customer, groupJobs])=>(
+                          <div key={customer} style={{marginBottom:12}}>
+                            <div style={{display:"flex",alignItems:"center",gap:6,padding:"5px 8px",background:"#deeaf7",border:"1px solid #7eb8f7",borderRadius:"3px 3px 0 0",marginBottom:2}}>
+                              <span style={{fontSize:10,color:"#1a6eb5",fontWeight:700,letterSpacing:"1px",textTransform:"uppercase"}}>⊕ Combined Shipment</span>
+                              <span style={{fontSize:10,color:"#4a8abf"}}>{customer}</span>
+                              <span style={{fontSize:10,color:"#4a8abf",marginLeft:"auto"}}>{groupJobs.length} items</span>
+                            </div>
+                            <div style={{border:"2px solid #7eb8f7",borderTop:"none",borderRadius:"0 0 3px 3px",padding:"4px 4px 0"}}>
+                              {groupJobs.map(job=>(
+                                <JobCard key={job.id} job={job} selected={selJob?.id===job.id}
+                                  onClick={()=>setSelJob(selJob?.id===job.id?null:job)}
+                                  onDelete={deleteJob}/>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                        {singleJobs.map(job=>(
+                          <JobCard key={job.id} job={job} selected={selJob?.id===job.id}
+                            onClick={()=>setSelJob(selJob?.id===job.id?null:job)}
+                            onDelete={deleteJob}/>
+                        ))}
+                        {sg.jobs.length===0&&<div style={{fontSize:10,color:"#bbb",textAlign:"center",padding:20,letterSpacing:1}}>NO JOBS</div>}
+                      </>;
+                    })()
+                  ) : (
+                    <>
+                      {sg.jobs.map(job => (
+                        <JobCard key={job.id} job={job} selected={selJob?.id===job.id}
+                          onClick={()=>setSelJob(selJob?.id===job.id?null:job)}
+                          onDelete={deleteJob}/>
+                      ))}
+                      {sg.jobs.length===0&&<div style={{fontSize:10,color:"#bbb",textAlign:"center",padding:20,letterSpacing:1}}>NO JOBS</div>}
+                    </>
+                  )}
+                  )}
                 </div>
               </div>
             ))}
@@ -646,8 +689,8 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
               </button>
             )}
             {f.stage==="in_production"&&<button style={{...S.btn("o"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}} onClick={()=>advanceStage("boxing")}>→ Move to Boxing</button>}
-            {f.stage==="boxing"&&<button style={{...S.btn("o"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}} onClick={()=>advanceStage("qc")}>→ Move to QC</button>}
-            {f.stage==="qc"&&<button style={{...S.btn("g"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}} onClick={()=>advanceStage("shipping")}>✓ QC Passed — Move to Shipping</button>}
+            {f.stage==="boxing"&&<button style={{...S.btn("o"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}} onClick={()=>advanceStage("ready_to_ship")}>→ Ready to Ship</button>}
+            {f.stage==="ready_to_ship"&&<button style={{...S.btn("g"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}} onClick={()=>advanceStage("shipping")}>✓ Mark as Shipped / Picked Up</button>}
             </>
             )}
           </>
