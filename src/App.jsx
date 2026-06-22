@@ -56,6 +56,7 @@ const ALL_STAGES = [...LISA_STAGES, ...LUPE_STAGES];
 const LISA_CHECKLIST = [
   { key: "deposit_received",      label: "Deposit Received" },
   { key: "artwork_received",      label: "Artwork Received" },
+  { key: "artwork_to_andrew",     label: "Artwork Provided to Andrew (if required)" },
   { key: "mockup_created",        label: "Digital Mockup Created" },
   { key: "mockup_approved",       label: "Digital Mockup Approved" },
   { key: "product_ordered",       label: "Product Ordered" },
@@ -368,41 +369,38 @@ function JobCard({ job, selected, onClick, onDelete }) {
 // ── Job Detail Panel ─────────────────────────────────────────────────────────
 function JobDetail({ job, onSave, onDelete, onClose }) {
   const [f, setF] = useState({...job});
-  const sf = (k,v) => setF(x=>({...x,[k]:v}));
-  const timer = useRef({});
+  const [dirty, setDirty] = useState(false);
 
-  // Sync when job prop changes (e.g. after save)
-  useEffect(()=>setF({...job}),[job.id]);
+  // Sync when job prop changes (e.g. after external save)
+  useEffect(()=>{ setF({...job}); setDirty(false); },[job.id]);
 
-  const autoSave = (updated) => {
-    clearTimeout(timer.current.save);
-    timer.current.save = setTimeout(()=>onSave(updated),800);
-  };
-
+  // Update local state only — no autosave for text fields
   const update = (k,v) => {
-    const updated = {...f,[k]:v};
-    setF(updated);
-    autoSave(updated);
+    setF(x=>({...x,[k]:v}));
+    setDirty(true);
   };
 
+  // Checkboxes still save immediately
   const toggleLisa = (key) => {
     const updated = {...f, lisaChecklist:{...f.lisaChecklist,[key]:!f.lisaChecklist[key]}};
-    setF(updated);
-    autoSave(updated);
+    setF(updated); setDirty(false);
+    onSave(updated);
   };
 
   const toggleLupe = (key) => {
     const updated = {...f, lupeChecklist:{...f.lupeChecklist,[key]:!f.lupeChecklist[key]}};
-    setF(updated);
-    autoSave(updated);
+    setF(updated); setDirty(false);
+    onSave(updated);
   };
+
+  const handleSave = () => { onSave(f); setDirty(false); };
 
   const lisaAllDone = LISA_CHECKLIST.every(c=>f.lisaChecklist[c.key]);
   const lupeAllDone = LUPE_CHECKLIST.every(c=>f.lupeChecklist[c.key]);
 
   const advanceStage = (toStage) => {
     const updated = {...f, stage:toStage};
-    setF(updated);
+    setF(updated); setDirty(false);
     onSave(updated);
   };
 
@@ -418,6 +416,7 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
         </select>
       ) : (
         <input style={S.inp} type={type} value={f[k]||""} onChange={e=>update(k,e.target.value)}/>
+
       )}
     </div>
   );
@@ -569,7 +568,9 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
 
         <div style={S.divider}/>
         <div style={{display:"flex",gap:8}}>
-          <button style={{...S.btn("o"),flex:1,padding:"10px"}} onClick={()=>onSave(f)}>Save</button>
+          <button style={{...S.btn("p"),flex:1,padding:"12px",fontSize:12,letterSpacing:2,position:"relative"}} onClick={handleSave}>
+            {dirty ? "● Save Changes" : "✓ Saved"}
+          </button>
           <button style={{...S.btn("o"),color:"#c8392b",borderColor:"#c8392b33",padding:"10px 16px"}} onClick={onDelete}>Delete</button>
         </div>
       </div>
