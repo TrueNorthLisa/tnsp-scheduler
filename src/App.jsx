@@ -71,6 +71,9 @@ const LUPE_CHECKLIST = [
   { key: "product_on_carts",      label: "Product on Carts" },
 ];
 
+const PRODUCTION_TYPES = ["Screen Print — Fionn", "Embroidery", "DTF", "Vinyl"];
+const SUPPLIERS = ["S&S Canada", "SanMar Canada", "Private Agent", "AS Colour", "Other"];
+
 const DEC_COLORS = {
   "Screen Printing": { bg:"#fffbe6", border:"#e8c547", dot:"#c49a2a" },
   "Embroidery":      { bg:"#f3eeff", border:"#b39ddb", dot:"#7c4dbd" },
@@ -78,7 +81,6 @@ const DEC_COLORS = {
   "Vinyl":           { bg:"#fce8f0", border:"#f7a8c4", dot:"#c8215a" },
   "Mixed":           { bg:"#fff2e8", border:"#ffb37a", dot:"#e07b20" },
 };
-const SUPPLIERS = ["S&S Canada", "SanMar Canada", "Private Agent", "AS Colour", "Other"];
 
 // ── Styles ──────────────────────────────────────────────────────────────────
 const C = {
