@@ -71,7 +71,13 @@ const LUPE_CHECKLIST = [
   { key: "product_on_carts",      label: "Product on Carts" },
 ];
 
-const PRODUCTION_TYPES = ["Screen Print — Fionn", "Embroidery", "DTF", "Vinyl"];
+const DEC_COLORS = {
+  "Screen Printing": { bg:"#fffbe6", border:"#e8c547", dot:"#c49a2a" },
+  "Embroidery":      { bg:"#f3eeff", border:"#b39ddb", dot:"#7c4dbd" },
+  "DTF":             { bg:"#e8f4fd", border:"#7eb8f7", dot:"#1a6eb5" },
+  "Vinyl":           { bg:"#fce8f0", border:"#f7a8c4", dot:"#c8215a" },
+  "Mixed":           { bg:"#fff2e8", border:"#ffb37a", dot:"#e07b20" },
+};
 const SUPPLIERS = ["S&S Canada", "SanMar Canada", "Private Agent", "AS Colour", "Other"];
 
 // ── Styles ──────────────────────────────────────────────────────────────────
@@ -328,9 +334,13 @@ function JobCard({ job, selected, onClick, onDelete }) {
   const isLupe = isLupeStage(job.stage);
   const total = isLupe ? LUPE_CHECKLIST.length : LISA_CHECKLIST.length;
   const done = isLupe ? lupeDone : lisaDone;
+  const decKey = Object.keys(DEC_COLORS).find(k=>(job.decorationType||"").toLowerCase().includes(k.toLowerCase()));
+  const dc = decKey ? DEC_COLORS[decKey] : null;
+  const cardBg = selected ? "#f0ede8" : (dc?.bg || C.card);
+  const cardBorder = selected ? C.red : (dc?.border || C.border);
 
   return (
-    <div style={{background:selected?"#f0ede8":C.card,border:`1px solid ${selected?C.red:C.border}`,borderLeft:`3px solid ${si.color}`,borderRadius:4,marginBottom:8,boxShadow:"0 1px 3px rgba(0,0,0,.06)",overflow:"hidden"}}>
+    <div style={{background:cardBg,border:`1px solid ${cardBorder}`,borderLeft:`3px solid ${si.color}`,borderRadius:4,marginBottom:8,boxShadow:"0 1px 3px rgba(0,0,0,.06)",overflow:"hidden"}}>
       <div onClick={onClick} style={{padding:"10px 12px",cursor:"pointer",transition:"all .15s"}}>
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:6}}>
           <div>
@@ -338,10 +348,12 @@ function JobCard({ job, selected, onClick, onDelete }) {
             <div style={{fontSize:13,fontWeight:700,color:C.text,marginTop:2}}>{job.customer}</div>
             {job.company&&<div style={{fontSize:11,color:C.sub}}>{job.company}</div>}
           </div>
-          {job.dueDate&&<div style={{fontSize:10,color:C.muted,textAlign:"right"}}>{new Date(job.dueDate+"T00:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</div>}
+          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+            {job.dueDate&&<div style={{fontSize:10,color:C.muted}}>{new Date(job.dueDate+"T00:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</div>}
+            {dc&&<div style={{fontSize:9,letterSpacing:"1px",textTransform:"uppercase",padding:"2px 7px",background:dc.bg,color:dc.dot,border:`1px solid ${dc.border}`,borderRadius:2,fontWeight:700}}>{job.decorationType}</div>}
+          </div>
         </div>
         <div style={{fontSize:11,color:C.sub,marginBottom:6}}>{job.product}{job.qty?` · ${job.qty} units`:""}</div>
-        {job.decorationType&&<span style={{...S.tag("#7eb8f7"),fontSize:9,marginBottom:6}}>{job.decorationType}</span>}
         {total>0&&(
           <div style={{marginTop:8}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
@@ -355,13 +367,13 @@ function JobCard({ job, selected, onClick, onDelete }) {
         )}
       </div>
       {/* Quick action bar */}
-      <div style={{borderTop:`1px solid ${C.border}`,display:"flex"}}>
+      <div style={{borderTop:`1px solid ${cardBorder}`,display:"flex"}}>
         <button onClick={onClick} style={{flex:1,padding:"5px 8px",background:"transparent",border:"none",color:C.muted,fontSize:10,letterSpacing:"1px",cursor:"pointer",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>
           {selected ? "▲ Close" : "▼ Open"}
         </button>
         <button
           onClick={e=>{e.stopPropagation();if(window.confirm(`Delete job #${job.jobNum} — ${job.customer}?`))onDelete(job.id);}}
-          style={{padding:"5px 12px",background:"transparent",border:"none",borderLeft:`1px solid ${C.border}`,color:"#c8392b",fontSize:10,letterSpacing:"1px",cursor:"pointer",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>
+          style={{padding:"5px 12px",background:"transparent",border:"none",borderLeft:`1px solid ${cardBorder}`,color:"#c8392b",fontSize:10,letterSpacing:"1px",cursor:"pointer",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>
           ✕ Delete
         </button>
       </div>
