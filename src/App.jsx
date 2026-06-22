@@ -360,11 +360,10 @@ export default function App() {
             ))}
           </div>
 
-          {/* Detail panel — full screen on mobile */}
+          {/* Detail panel — full screen on mobile, side panel on desktop */}
           {selJob && (
-            <div style={{position:"fixed",inset:0,background:"#faf8f4",overflowY:"auto",zIndex:200,
-              // On desktop: side panel
-              maxWidth:"min(100vw, 440px)",right:0,left:"auto",borderLeft:`1px solid ${C.border}`}}>
+            <div style={{position:"fixed",top:0,right:0,bottom:0,left:0,background:"#faf8f4",overflowY:"auto",zIndex:200,
+              boxShadow:"-4px 0 24px rgba(0,0,0,.1)"}}>
               <JobDetail job={selJob} onSave={saveJob} onDelete={()=>deleteJob(selJob.id)} onClose={()=>setSelJob(null)}/>
             </div>
           )}
@@ -459,7 +458,7 @@ function Field({ label, k, type="text", opts, value, onChange }) {
 // ── File Upload component
 function FileAttachments({ jobId, files, onFilesChanged }) {
   const [uploading, setUploading] = useState(false);
-  const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+  const SB_URL = (import.meta.env.VITE_SUPABASE_URL||"").replace(/\/rest\/v1\/?$/,"").replace(/\/+$/,"");
   const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
   const uploadFile = async (file) => {
