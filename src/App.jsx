@@ -145,6 +145,7 @@ export default function App() {
   const [selJob, setSelJob] = useState(null);
   const [showNew, setShowNew] = useState(false);
   const [toast, setToast] = useState("");
+  const [activeStage, setActiveStage] = useState(null); // mobile: active stage filter
   const pollRef = useRef(null);
 
   useEffect(() => {
@@ -260,46 +261,60 @@ export default function App() {
   return (
     <div style={S.root}>
       <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+      <meta name="viewport" content="width=device-width, initial-scale=1"/>
 
       {/* Header */}
-      <div style={S.header}>
-        <div style={{display:"flex",alignItems:"center",gap:16}}>
-          <div style={S.logo}>TRUE <span style={{color:C.red}}>NORTH</span></div>
-          <div style={{fontSize:10,color:"#333",letterSpacing:2}}>PRODUCTION SCHEDULER</div>
+      <div style={{...S.header,padding:"10px 14px",flexWrap:"wrap",gap:8}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{...S.logo,fontSize:18}}>TRUE <span style={{color:C.red}}>NORTH</span></div>
         </div>
-        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <button style={{...S.btn(view==="lisa"?"p":"o"),borderColor:view==="lisa"?C.red:"#ccc"}} onClick={()=>{setView("lisa");setSelJob(null);}}>Lisa</button>
-          <button style={{...S.btn(view==="lupe"?"p":"o"),borderColor:view==="lupe"?C.red:"#ccc"}} onClick={()=>{setView("lupe");setSelJob(null);}}>Lupe / Production</button>
-          <button style={S.btn("p")} onClick={()=>setShowNew(true)}>+ New Job</button>
-          <button style={S.btn("o")} onClick={loadJobs}>↺</button>
+        <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+          <button style={{...S.btn(view==="lisa"?"p":"o"),padding:"6px 12px",fontSize:10}} onClick={()=>{setView("lisa");setSelJob(null);setActiveStage(null);}}>Lisa</button>
+          <button style={{...S.btn(view==="lupe"?"p":"o"),padding:"6px 12px",fontSize:10}} onClick={()=>{setView("lupe");setSelJob(null);setActiveStage(null);}}>Lupe</button>
+          <button style={{...S.btn("p"),padding:"6px 12px",fontSize:10}} onClick={()=>setShowNew(true)}>+ New</button>
+          <button style={{...S.btn("o"),padding:"6px 10px",fontSize:12}} onClick={loadJobs}>↺</button>
         </div>
+      </div>
+
+      {/* Mobile stage tabs */}
+      <div style={{overflowX:"auto",display:"flex",gap:0,borderBottom:`1px solid ${C.border}`,background:"#eee9e0",WebkitOverflowScrolling:"touch"}}>
+        {stageGroups.map(sg=>(
+          <button key={sg.key} onClick={()=>setActiveStage(activeStage===sg.key?null:sg.key)}
+            style={{flexShrink:0,padding:"8px 14px",background:activeStage===sg.key?sg.color+"22":"transparent",border:"none",borderBottom:activeStage===sg.key?`3px solid ${sg.color}`:"3px solid transparent",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:"1px",textTransform:"uppercase",color:activeStage===sg.key?sg.color:C.muted,whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:5}}>
+            <span style={{width:7,height:7,borderRadius:"50%",background:sg.color,display:"inline-block",flexShrink:0}}/>
+            {sg.label}
+            <span style={{background:sg.color+"33",color:sg.color,borderRadius:10,padding:"1px 6px",fontSize:9}}>
+              {stageGroups.find(s=>s.key===sg.key)?.jobs.length||0}
+            </span>
+          </button>
+        ))}
       </div>
 
       {loading && <div style={{textAlign:"center",padding:60,color:C.muted,letterSpacing:2}}>LOADING…</div>}
 
       {!loading && (
-        <div style={{display:"flex",height:"calc(100vh - 55px)"}}>
+        <div style={{display:"flex",height:"calc(100vh - 100px)"}}>
 
-          {/* Board */}
+          {/* Board — desktop: all columns side by side, mobile: single column filtered by stage */}
           <div style={{flex:1,overflowX:"auto",overflowY:"hidden",display:"flex",gap:0}}>
-            {stageGroups.map(sg => (
-              <div key={sg.key} style={{minWidth:280,maxWidth:320,flex:"0 0 300px",borderRight:`1px solid ${C.border}`,display:"flex",flexDirection:"column",height:"100%",background:C.bg}}>
-                {/* Column header */}
-                <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`,background:"#eee9e0",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <div style={{width:8,height:8,borderRadius:"50%",background:sg.color}}/>
-                    <span style={{fontSize:11,letterSpacing:"1.5px",textTransform:"uppercase",color:C.text}}>{sg.label}</span>
+            {stageGroups.filter(sg=>!activeStage||sg.key===activeStage).map(sg => (
+              <div key={sg.key} style={{minWidth:activeStage?"100%":280,maxWidth:activeStage?"100%":320,flex:activeStage?"1":"0 0 300px",borderRight:activeStage?"none":`1px solid ${C.border}`,display:"flex",flexDirection:"column",height:"100%",background:C.bg}}>
+                {/* Column header — hide on mobile when filtered (tab shows it) */}
+                {!activeStage&&(
+                  <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`,background:"#eee9e0",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <div style={{width:8,height:8,borderRadius:"50%",background:sg.color}}/>
+                      <span style={{fontSize:11,letterSpacing:"1.5px",textTransform:"uppercase",color:C.text}}>{sg.label}</span>
+                    </div>
+                    <span style={{fontSize:11,color:C.muted}}>{sg.jobs.length}</span>
                   </div>
-                  <span style={{fontSize:11,color:C.muted}}>{sg.jobs.length}</span>
-                </div>
+                )}
                 {/* Jobs */}
-                <div style={{flex:1,overflowY:"auto",padding:"10px 10px"}}>
+                <div style={{flex:1,overflowY:"auto",padding:"10px 10px",WebkitOverflowScrolling:"touch"}}>
                   {sg.key==="ready_to_ship" ? (
-                    // Group by customer for combined shipment visibility
                     (() => {
                       const multiJobs = sg.jobs.filter(j=>j.multiOrder);
                       const singleJobs = sg.jobs.filter(j=>!j.multiOrder);
-                      // Group multi-order jobs by customer
                       const groups = {};
                       multiJobs.forEach(j=>{
                         const key = j.company||j.customer||"Unknown";
@@ -311,7 +326,6 @@ export default function App() {
                           <div key={customer} style={{marginBottom:12}}>
                             <div style={{display:"flex",alignItems:"center",gap:6,padding:"5px 8px",background:"#deeaf7",border:"1px solid #7eb8f7",borderRadius:"3px 3px 0 0",marginBottom:2}}>
                               <span style={{fontSize:10,color:"#1a6eb5",fontWeight:700,letterSpacing:"1px",textTransform:"uppercase"}}>⊕ Combined Shipment</span>
-                              <span style={{fontSize:10,color:"#4a8abf"}}>{customer}</span>
                               <span style={{fontSize:10,color:"#4a8abf",marginLeft:"auto"}}>{groupJobs.length} items</span>
                             </div>
                             <div style={{border:"2px solid #7eb8f7",borderTop:"none",borderRadius:"0 0 3px 3px",padding:"4px 4px 0"}}>
@@ -341,15 +355,16 @@ export default function App() {
                       {sg.jobs.length===0&&<div style={{fontSize:10,color:"#bbb",textAlign:"center",padding:20,letterSpacing:1}}>NO JOBS</div>}
                     </>
                   )}
-                  )}
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Detail panel */}
+          {/* Detail panel — full screen on mobile */}
           {selJob && (
-            <div style={{width:420,borderLeft:`1px solid ${C.border}`,background:"#faf8f4",overflowY:"auto",flexShrink:0}}>
+            <div style={{position:"fixed",inset:0,background:"#faf8f4",overflowY:"auto",zIndex:200,
+              // On desktop: side panel
+              maxWidth:"min(100vw, 440px)",right:0,left:"auto",borderLeft:`1px solid ${C.border}`}}>
               <JobDetail job={selJob} onSave={saveJob} onDelete={()=>deleteJob(selJob.id)} onClose={()=>setSelJob(null)}/>
             </div>
           )}
