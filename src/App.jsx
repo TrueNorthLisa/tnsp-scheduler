@@ -134,6 +134,7 @@ function r2j(r) {
     productionAssignee: r.production_assignee || "",
     priority: r.priority || 99,
     multiOrder: r.multi_order || false,
+    isRush: r.is_rush || false,
     createdAt: r.created_at || "",
     files: r.files || [],
   };
@@ -196,6 +197,7 @@ export default function App() {
         lupe_checklist: job.lupeChecklist,
         production_assignee: job.productionAssignee,
         files: job.files || [],
+        is_rush: job.isRush || false,
       }, { id: job.id });
       setJobs(prev => prev.map(j=>j.id===job.id?job:j));
       if (selJob?.id===job.id) setSelJob(job);
@@ -257,7 +259,13 @@ export default function App() {
   // Group by stage
   const stageGroups = (view==="lisa" ? LISA_STAGES : LUPE_STAGES).map(s => ({
     ...s,
-    jobs: visibleJobs.filter(j=>j.stage===s.key).sort((a,b)=>a.priority-b.priority)
+    jobs: visibleJobs
+      .filter(j=>j.stage===s.key)
+      .sort((a,b)=>{
+        if(a.isRush && !b.isRush) return -1;
+        if(!a.isRush && b.isRush) return 1;
+        return (a.priority||99)-(b.priority||99);
+      })
   }));
 
   return (
@@ -396,10 +404,17 @@ function JobCard({ job, selected, onClick, onDelete }) {
   const decKey = Object.keys(DEC_COLORS).find(k=>(job.decorationType||"").toLowerCase().includes(k.toLowerCase()));
   const dc = decKey ? DEC_COLORS[decKey] : null;
   const cardBg = selected ? "#f0ede8" : (dc?.bg || C.card);
-  const cardBorder = selected ? C.red : (dc?.border || C.border);
+  const cardBorder = selected ? C.red : job.isRush ? C.red : (dc?.border || C.border);
 
   return (
-    <div style={{background:cardBg,border:`1px solid ${cardBorder}`,borderLeft:`3px solid ${si.color}`,borderRadius:4,marginBottom:8,boxShadow:"0 1px 3px rgba(0,0,0,.06)",overflow:"hidden"}}>
+    <div style={{background:cardBg,border:`2px solid ${cardBorder}`,borderLeft:`4px solid ${job.isRush?C.red:si.color}`,borderRadius:4,marginBottom:8,boxShadow:job.isRush?"0 2px 8px rgba(200,57,43,.25)":"0 1px 3px rgba(0,0,0,.06)",overflow:"hidden"}}>
+      {/* Rush banner */}
+      {job.isRush&&(
+        <div style={{background:C.red,padding:"3px 10px",display:"flex",alignItems:"center",gap:6}}>
+          <span style={{fontSize:10,fontWeight:700,letterSpacing:"2px",color:"#fff",fontFamily:"'DM Mono',monospace"}}>⚡ RUSH JOB</span>
+          {job.dueDate&&<span style={{fontSize:10,color:"rgba(255,255,255,.8)",marginLeft:"auto",fontFamily:"'DM Mono',monospace"}}>Due: {new Date(job.dueDate+"T00:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</span>}
+        </div>
+      )}
       <div onClick={onClick} style={{padding:"10px 12px",cursor:"pointer",transition:"all .15s"}}>
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:6}}>
           <div>
@@ -587,7 +602,19 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
 
         <div style={S.divider}/>
 
-        {/* Job Info */}
+        {/* Rush toggle */}
+        <div onClick={()=>{const u={...f,isRush:!f.isRush};setF(u);setDirty(true);}}
+          style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",marginBottom:4,background:f.isRush?"#fef0ee":"#faf8f4",border:`2px solid ${f.isRush?C.red:"#ddd"}`,borderRadius:4,cursor:"pointer",userSelect:"none"}}>
+          <div style={{width:22,height:22,borderRadius:3,background:f.isRush?C.red:"#fff",border:`2px solid ${f.isRush?C.red:"#ccc"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            {f.isRush&&<span style={{color:"#fff",fontSize:13,lineHeight:1}}>✓</span>}
+          </div>
+          <div>
+            <div style={{fontSize:12,fontWeight:700,letterSpacing:"1px",textTransform:"uppercase",color:f.isRush?C.red:C.muted,fontFamily:"'DM Mono',monospace"}}>⚡ Rush Job</div>
+            <div style={{fontSize:11,color:C.sub,fontFamily:"'DM Sans',sans-serif"}}>Flags this job as urgent — sorted to top of every column</div>
+          </div>
+        </div>
+
+        <div style={S.divider}/>
         <div style={{fontSize:10,letterSpacing:"2px",color:C.red,textTransform:"uppercase",marginBottom:12,fontWeight:700}}>Job Info</div>
         <div style={S.g2}>
           <Field label="Customer Name" k="customer" value={f.customer} onChange={update}/>
