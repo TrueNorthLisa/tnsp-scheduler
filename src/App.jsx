@@ -164,7 +164,7 @@ export default function App() {
 
   const loadJobs = async () => {
     try {
-      const data = await sb.get("jobs", "?order=priority.asc&select=*");
+      const data = await sb.get("jobs", "?select=*&source=eq.scheduler&order=priority.asc");
       setJobs(prev => {
         const fresh = (Array.isArray(data)?data:[]).map(r2j);
         return fresh.map(fj => {
@@ -236,6 +236,7 @@ export default function App() {
         lisa_checklist: {},
         lupe_checklist: {},
         priority: jobs.length + 1,
+        source: "scheduler",
       });
       setJobs(prev => [...prev, r2j(r)]);
       showToast(`Job #${nextNum} created ✓`);
@@ -277,7 +278,7 @@ export default function App() {
       const filter = q
         ? `&or=(customer.ilike.*${q}*,company.ilike.*${q}*,job_num.ilike.*${q}*,product.ilike.*${q}*)`
         : "";
-      const data = await sb.get("jobs", `?select=*&stage=eq.archived${filter}&order=updated_at.desc&limit=50`);
+      const data = await sb.get("jobs", `?select=*&stage=eq.archived&source=eq.scheduler${filter}&order=updated_at.desc&limit=50`);
       setArchiveJobs(Array.isArray(data)?data.map(r2j):[]);
     } catch(e) { showToast("Could not load archive"); }
     setArchiveLoading(false);
