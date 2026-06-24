@@ -144,11 +144,14 @@ function r2j(r) {
 export default function App() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState("lisa"); // "lisa" | "lupe"
+  const [view, setView] = useState("lisa"); // "lisa" | "lupe" | "archive"
   const [selJob, setSelJob] = useState(null);
   const [showNew, setShowNew] = useState(false);
   const [toast, setToast] = useState("");
-  const [activeStage, setActiveStage] = useState(null); // mobile: active stage filter
+  const [activeStage, setActiveStage] = useState(null);
+  const [archiveJobs, setArchiveJobs] = useState([]);
+  const [archiveSearch, setArchiveSearch] = useState("");
+  const [archiveLoading, setArchiveLoading] = useState(false);
   const pollRef = useRef(null);
 
   useEffect(() => {
@@ -250,6 +253,36 @@ export default function App() {
     showToast("Deleted");
   };
 
+  const archiveJob = async (job) => {
+    const updated = {...job, stage:"archived"};
+    await sb.patch("jobs", { stage:"archived" }, { id:job.id });
+    setJobs(prev => prev.filter(j=>j.id!==job.id));
+    setSelJob(null);
+    showToast("Job archived ✓");
+  };
+
+  const restoreJob = async (job) => {
+    const updated = {...job, stage:"new_sale"};
+    await sb.patch("jobs", { stage:"new_sale" }, { id:job.id });
+    setArchiveJobs(prev => prev.filter(j=>j.id!==job.id));
+    setJobs(prev => [...prev, updated]);
+    setSelJob(null);
+    showToast("Job restored to New Sale ✓");
+  };
+
+  const loadArchive = async (search="") => {
+    setArchiveLoading(true);
+    try {
+      const q = search.trim();
+      const filter = q
+        ? `&or=(customer.ilike.*${q}*,company.ilike.*${q}*,job_num.ilike.*${q}*,product.ilike.*${q}*)`
+        : "";
+      const data = await sb.get("jobs", `?select=*&stage=eq.archived${filter}&order=updated_at.desc&limit=50`);
+      setArchiveJobs(Array.isArray(data)?data.map(r2j):[]);
+    } catch(e) { showToast("Could not load archive"); }
+    setArchiveLoading(false);
+  };
+
   // Filter jobs by view
   const lisaJobs = jobs.filter(j => LISA_STAGES.some(s=>s.key===j.stage));
   const lupeJobs = jobs.filter(j => LUPE_STAGES.some(s=>s.key===j.stage));
@@ -279,10 +312,20 @@ export default function App() {
           <div style={{...S.logo,fontSize:18}}>TRUE <span style={{color:C.red}}>NORTH</span></div>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-          <button style={{...S.btn(view==="lisa"?"p":"o"),padding:"6px 12px",fontSize:10}} onClick={()=>{setView("lisa");setSelJob(null);setActiveStage(null);}}>Lisa</button>
-          <button style={{...S.btn(view==="lupe"?"p":"o"),padding:"6px 12px",fontSize:10}} onClick={()=>{setView("lupe");setSelJob(null);setActiveStage(null);}}>Lupe</button>
+          {[["lisa","Lisa"],["lupe","Lupe"]].map(([v,label])=>(
+            <button key={v}
+              style={{padding:"6px 14px",fontSize:10,fontFamily:"'DM Mono',monospace",fontWeight:700,letterSpacing:"1px",textTransform:"uppercase",cursor:"pointer",borderRadius:3,border:`2px solid ${view===v?"#fff":"#555"}`,background:view===v?"#fff":"transparent",color:view===v?C.red:"#888",transition:"all .15s"}}
+              onClick={()=>{setView(v);setSelJob(null);setActiveStage(null);}}>
+              {label}
+            </button>
+          ))}
+          <button
+            style={{padding:"6px 14px",fontSize:10,fontFamily:"'DM Mono',monospace",fontWeight:700,letterSpacing:"1px",textTransform:"uppercase",cursor:"pointer",borderRadius:3,border:`2px solid ${view==="archive"?"#e8c547":"#555"}`,background:view==="archive"?"#e8c547":"transparent",color:view==="archive"?"#0d0d0d":"#888"}}
+            onClick={()=>{setView("archive");setSelJob(null);setActiveStage(null);loadArchive("");}}>
+            Archive
+          </button>
           <button style={{...S.btn("p"),padding:"6px 12px",fontSize:10}} onClick={()=>setShowNew(true)}>+ New</button>
-          <button style={{...S.btn("o"),padding:"6px 10px",fontSize:12}} onClick={loadJobs}>↺</button>
+          <button style={{padding:"6px 10px",fontSize:12,fontFamily:"'DM Mono',monospace",background:"transparent",border:"2px solid #555",color:"#888",borderRadius:3,cursor:"pointer"}} onClick={loadJobs}>↺</button>
         </div>
       </div>
 
@@ -302,7 +345,46 @@ export default function App() {
 
       {loading && <div style={{textAlign:"center",padding:60,color:C.muted,letterSpacing:2}}>LOADING…</div>}
 
-      {!loading && (
+      {!loading && view==="archive" && (
+        <div style={{flex:1,overflowY:"auto",padding:20,background:C.bg}}>
+          <div style={{marginBottom:16,display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+            <input
+              style={{...S.inp,maxWidth:360,padding:"8px 14px"}}
+              placeholder="Search by customer, company, job #, or product…"
+              value={archiveSearch}
+              onChange={e=>setArchiveSearch(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&loadArchive(archiveSearch)}/>
+            <button style={{...S.btn("p"),padding:"8px 16px"}} onClick={()=>loadArchive(archiveSearch)}>Search</button>
+            {archiveSearch&&<button style={{...S.btn("o"),padding:"8px 12px"}} onClick={()=>{setArchiveSearch("");loadArchive("");}}>Clear</button>}
+          </div>
+          {archiveLoading&&<div style={{color:C.muted,letterSpacing:2,fontSize:12}}>LOADING…</div>}
+          {!archiveLoading&&archiveJobs.length===0&&<div style={{color:C.muted,fontSize:12}}>No archived jobs found.</div>}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
+            {archiveJobs.map(job=>{
+              const dc = Object.keys(DEC_COLORS).find(k=>(job.decorationType||"").toLowerCase().includes(k.toLowerCase()));
+              const dcol = dc?DEC_COLORS[dc]:null;
+              return (
+                <div key={job.id} style={{background:dcol?.bg||"#fff",border:`1px solid ${dcol?.border||C.border}`,borderRadius:4,padding:"12px 14px",boxShadow:"0 1px 3px rgba(0,0,0,.06)"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                    <div style={{fontSize:11,color:C.gold,fontWeight:700,letterSpacing:1}}>#{job.jobNum}</div>
+                    {job.dueDate&&<div style={{fontSize:10,color:C.muted}}>{new Date(job.dueDate+"T00:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric",year:"numeric"})}</div>}
+                  </div>
+                  <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:2}}>{job.customer}</div>
+                  {job.company&&<div style={{fontSize:11,color:C.sub,marginBottom:4}}>{job.company}</div>}
+                  <div style={{fontSize:11,color:C.sub,marginBottom:8}}>{job.product}{job.qty?` · ${job.qty} units`:""}</div>
+                  {job.decorationType&&<div style={{fontSize:9,letterSpacing:"1px",textTransform:"uppercase",padding:"2px 7px",background:dcol?.bg||"#f5f5f5",color:dcol?.dot||"#666",border:`1px solid ${dcol?.border||"#ddd"}`,borderRadius:2,display:"inline-block",marginBottom:8,fontWeight:700}}>{job.decorationType}</div>}
+                  <div style={{display:"flex",gap:8,marginTop:8}}>
+                    <button style={{...S.btn("g"),flex:1,fontSize:10,padding:"6px 10px"}} onClick={()=>restoreJob(job)}>↩ Restore as New Job</button>
+                    <button style={{...S.btn("o"),fontSize:10,padding:"6px 10px",color:C.red,borderColor:"#e0b0b0"}} onClick={async()=>{if(confirm(`Permanently delete job #${job.jobNum}?`)){await sb.del("jobs",{id:job.id});setArchiveJobs(prev=>prev.filter(j=>j.id!==job.id));showToast("Deleted");}}}> Delete</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {!loading && view!=="archive" && (
         <div style={{display:"flex",height:"calc(100vh - 100px)"}}>
 
           {/* Board — desktop: all columns side by side, mobile: single column filtered by stage */}
@@ -374,13 +456,12 @@ export default function App() {
           {selJob && (
             <div style={{position:"fixed",top:0,right:0,bottom:0,left:0,background:"#faf8f4",overflowY:"auto",zIndex:200,
               boxShadow:"-4px 0 24px rgba(0,0,0,.1)"}}>
-              <JobDetail job={selJob} onSave={saveJob} onDelete={()=>deleteJob(selJob.id)} onClose={()=>setSelJob(null)}/>
+              <JobDetail job={selJob} onSave={saveJob} onDelete={()=>deleteJob(selJob.id)} onArchive={()=>archiveJob(selJob)} onClose={()=>setSelJob(null)}/>
             </div>
           )}
         </div>
-      )}
+      )} {/* end board view */}
 
-      {/* New job modal */}
       {showNew && <NewJobModal onAdd={f=>{addJob(f);setShowNew(false);}} onClose={()=>setShowNew(false)}/>}
 
       {/* Toast */}
@@ -535,7 +616,7 @@ function FileAttachments({ jobId, files, onFilesChanged }) {
 }
 
 // ── Job Detail Panel ─────────────────────────────────────────────────────────
-function JobDetail({ job, onSave, onDelete, onClose }) {
+function JobDetail({ job, onSave, onDelete, onArchive, onClose }) {
   const [f, setF] = useState({...job});
   const [dirty, setDirty] = useState(false);
 
@@ -734,6 +815,12 @@ function JobDetail({ job, onSave, onDelete, onClose }) {
             {f.stage==="in_production"&&<button style={{...S.btn("o"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}} onClick={()=>advanceStage("boxing")}>→ Move to Boxing</button>}
             {f.stage==="boxing"&&<button style={{...S.btn("o"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}} onClick={()=>advanceStage("ready_to_ship")}>→ Ready to Ship</button>}
             {f.stage==="ready_to_ship"&&<button style={{...S.btn("g"),width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2}} onClick={()=>advanceStage("shipping")}>✓ Mark as Shipped / Picked Up</button>}
+            {f.stage==="shipping"&&(
+              <button style={{background:"#e8c547",color:"#0d0d0d",border:"none",width:"100%",padding:"12px",marginTop:12,fontSize:12,letterSpacing:2,fontFamily:"'DM Mono',monospace",fontWeight:700,cursor:"pointer",borderRadius:3,textTransform:"uppercase"}}
+                onClick={onArchive}>
+                ↓ Archive This Job
+              </button>
+            )}
             </>
             )}
           </>
