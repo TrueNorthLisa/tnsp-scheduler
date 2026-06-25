@@ -135,6 +135,8 @@ function r2j(r) {
     priority: r.priority || 99,
     multiOrder: r.multi_order || false,
     isRush: r.is_rush || false,
+    printRunId: r.print_run_id || null,
+    printRunName: r.print_run_name || "",
     createdAt: r.created_at || "",
     files: r.files || [],
   };
@@ -152,13 +154,22 @@ export default function App() {
   const [archiveJobs, setArchiveJobs] = useState([]);
   const [archiveSearch, setArchiveSearch] = useState("");
   const [archiveLoading, setArchiveLoading] = useState(false);
+  const [printRuns, setPrintRuns] = useState([]); // {id, name}
   const pollRef = useRef(null);
 
   useEffect(() => {
     loadJobs();
+    loadPrintRuns();
     pollRef.current = setInterval(loadJobs, 60000);
     return () => clearInterval(pollRef.current);
   }, []);
+
+  const loadPrintRuns = async () => {
+    try {
+      const data = await sb.get("print_runs", "?select=id,name&order=name.asc");
+      setPrintRuns(Array.isArray(data) ? data : []);
+    } catch(e) { setPrintRuns([]); }
+  };
 
   const showToast = (msg) => { setToast(msg); setTimeout(()=>setToast(""),3000); };
 
@@ -201,6 +212,8 @@ export default function App() {
         production_assignee: job.productionAssignee,
         files: job.files || [],
         is_rush: job.isRush || false,
+        print_run_id: job.printRunId || null,
+        print_run_name: job.printRunName || null,
       }, { id: job.id });
       setJobs(prev => prev.map(j=>j.id===job.id?job:j));
       if (selJob?.id===job.id) setSelJob(job);
@@ -237,6 +250,8 @@ export default function App() {
         lupe_checklist: {},
         priority: jobs.length + 1,
         source: "scheduler",
+        print_run_id: fields.printRunId||null,
+        print_run_name: fields.printRunName||null,
       });
       setJobs(prev => [...prev, r2j(r)]);
       showToast(`Job #${nextNum} created ✓`);
@@ -404,7 +419,47 @@ export default function App() {
                 )}
                 {/* Jobs */}
                 <div style={{flex:1,overflowY:"auto",padding:"10px 10px",WebkitOverflowScrolling:"touch"}}>
-                  {sg.key==="ready_to_ship" ? (
+                  {(sg.key==="pre_production"||sg.key==="in_production") ? (
+                    // Group by print run
+                    (() => {
+                      const printRunJobs = sg.jobs.filter(j=>j.printRunId);
+                      const soloJobs = sg.jobs.filter(j=>!j.printRunId);
+                      const groups = {};
+                      printRunJobs.forEach(j=>{
+                        const key = j.printRunId;
+                        if(!groups[key]) groups[key]={ name:j.printRunName, jobs:[] };
+                        groups[key].jobs.push(j);
+                      });
+                      const PR_COLORS = ["#7c4dbd","#1a6eb5","#c8392b","#e07b20","#2a7a4b"];
+                      return <>
+                        {Object.entries(groups).map(([runId, {name, jobs:runJobs}], gi)=>{
+                          const col = PR_COLORS[gi % PR_COLORS.length];
+                          return (
+                            <div key={runId} style={{marginBottom:12}}>
+                              <div style={{display:"flex",alignItems:"center",gap:6,padding:"6px 8px",background:col+"18",border:`1px solid ${col}55`,borderRadius:"3px 3px 0 0"}}>
+                                <span style={{width:8,height:8,borderRadius:"50%",background:col,flexShrink:0,display:"inline-block"}}/>
+                                <span style={{fontSize:10,color:col,fontWeight:700,letterSpacing:"1px",textTransform:"uppercase",flex:1}}>🖨 {name}</span>
+                                <span style={{fontSize:10,color:col+"bb"}}>{runJobs.length} products</span>
+                              </div>
+                              <div style={{border:`2px solid ${col}44`,borderTop:"none",borderRadius:"0 0 3px 3px",padding:"4px 4px 0"}}>
+                                {runJobs.map(job=>(
+                                  <JobCard key={job.id} job={job} selected={selJob?.id===job.id}
+                                    onClick={()=>setSelJob(selJob?.id===job.id?null:job)}
+                                    onDelete={deleteJob}/>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {soloJobs.map(job=>(
+                          <JobCard key={job.id} job={job} selected={selJob?.id===job.id}
+                            onClick={()=>setSelJob(selJob?.id===job.id?null:job)}
+                            onDelete={deleteJob}/>
+                        ))}
+                        {sg.jobs.length===0&&<div style={{fontSize:10,color:"#bbb",textAlign:"center",padding:20,letterSpacing:1}}>NO JOBS</div>}
+                      </>;
+                    })()
+                  ) : sg.key==="ready_to_ship" ? (
                     (() => {
                       const multiJobs = sg.jobs.filter(j=>j.multiOrder);
                       const singleJobs = sg.jobs.filter(j=>!j.multiOrder);
@@ -457,13 +512,13 @@ export default function App() {
           {selJob && (
             <div style={{position:"fixed",top:0,right:0,bottom:0,left:0,background:"#faf8f4",overflowY:"auto",zIndex:200,
               boxShadow:"-4px 0 24px rgba(0,0,0,.1)"}}>
-              <JobDetail job={selJob} onSave={saveJob} onDelete={()=>deleteJob(selJob.id)} onArchive={()=>archiveJob(selJob)} onClose={()=>setSelJob(null)}/>
+              <JobDetail job={selJob} onSave={saveJob} onDelete={()=>deleteJob(selJob.id)} onArchive={()=>archiveJob(selJob)} onClose={()=>setSelJob(null)} printRuns={printRuns} onPrintRunCreated={pr=>setPrintRuns(prev=>[...prev,pr])}/>
             </div>
           )}
         </div>
       )} {/* end board view */}
 
-      {showNew && <NewJobModal onAdd={f=>{addJob(f);setShowNew(false);}} onClose={()=>setShowNew(false)}/>}
+      {showNew && <NewJobModal printRuns={printRuns} onAdd={f=>{addJob(f);setShowNew(false);}} onPrintRunCreated={pr=>setPrintRuns(prev=>[...prev,pr])} onClose={()=>setShowNew(false)}/>}
 
       {/* Toast */}
       {toast && (
@@ -616,8 +671,61 @@ function FileAttachments({ jobId, files, onFilesChanged }) {
   );
 }
 
+// ── PrintRunSelector ──────────────────────────────────────────────────────────
+function PrintRunSelector({ value, valueName, printRuns, onChange, onPrintRunCreated }) {
+  const [showNew, setShowNew] = useState(false);
+  const [newName, setNewName] = useState("");
+  const SB_URL = (import.meta.env.VITE_SUPABASE_URL||"").replace(/\/rest\/v1\/?$/,"").replace(/\/+$/,"");
+  const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  const createRun = async () => {
+    if(!newName.trim()) return;
+    try {
+      const res = await fetch(`${SB_URL}/rest/v1/print_runs`, {
+        method:"POST",
+        headers:{ apikey:SB_KEY, Authorization:`Bearer ${SB_KEY}`, "Content-Type":"application/json", Prefer:"return=representation" },
+        body: JSON.stringify({ name: newName.trim() })
+      });
+      const data = await res.json();
+      const pr = data[0];
+      if(pr?.id){ onPrintRunCreated(pr); onChange(pr.id,pr.name); setShowNew(false); setNewName(""); }
+    } catch(e) { alert("Could not create print run"); }
+  };
+
+  return (
+    <div style={{padding:"10px 12px",background:"#faf8f4",border:`1px solid ${C.border}`,borderRadius:4,marginBottom:4}}>
+      <div style={{fontSize:10,letterSpacing:"1.5px",textTransform:"uppercase",color:C.muted,marginBottom:8,fontFamily:"'DM Mono',monospace"}}>🖨 Print Run <span style={{textTransform:"none",letterSpacing:0,color:"#aaa",fontSize:9}}>(optional)</span></div>
+      {value ? (
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <div style={{flex:1,padding:"6px 10px",background:"#edf7f1",border:`1px solid ${C.green}44`,borderRadius:3,fontSize:12,color:C.green,fontWeight:700}}>🖨 {valueName}</div>
+          <button style={{...S.btn("o"),padding:"4px 10px",fontSize:10}} onClick={()=>onChange(null,"")}>Remove</button>
+        </div>
+      ) : (
+        <>
+          <div style={{display:"flex",gap:8}}>
+            <select style={{...S.sel,flex:1,fontSize:12}} value="" onChange={e=>{
+              const pr = printRuns.find(r=>r.id===e.target.value);
+              if(pr) onChange(pr.id,pr.name);
+            }}>
+              <option value="">— Link to a print run —</option>
+              {printRuns.map(pr=><option key={pr.id} value={pr.id}>{pr.name}</option>)}
+            </select>
+            <button style={{...S.btn("o"),padding:"6px 10px",fontSize:10,whiteSpace:"nowrap"}} onClick={()=>setShowNew(v=>!v)}>+ New</button>
+          </div>
+          {showNew&&(
+            <div style={{display:"flex",gap:8,marginTop:8}}>
+              <input style={{...S.inp,flex:1,fontSize:12}} placeholder="e.g. Tofino Eagle Summer Run" value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&createRun()}/>
+              <button style={{...S.btn("g"),padding:"6px 10px",fontSize:10}} onClick={createRun}>Create</button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Job Detail Panel ─────────────────────────────────────────────────────────
-function JobDetail({ job, onSave, onDelete, onArchive, onClose }) {
+function JobDetail({ job, onSave, onDelete, onArchive, onClose, printRuns=[], onPrintRunCreated }) {
   const [f, setF] = useState({...job});
   const [dirty, setDirty] = useState(false);
 
@@ -695,6 +803,14 @@ function JobDetail({ job, onSave, onDelete, onArchive, onClose }) {
             <div style={{fontSize:11,color:C.sub,fontFamily:"'DM Sans',sans-serif"}}>Flags this job as urgent — sorted to top of every column</div>
           </div>
         </div>
+
+        {/* Print Run */}
+        <PrintRunSelector
+          value={f.printRunId} valueName={f.printRunName}
+          printRuns={printRuns}
+          onChange={(id,name)=>{setF(x=>({...x,printRunId:id,printRunName:name}));setDirty(true);}}
+          onPrintRunCreated={onPrintRunCreated}
+        />
 
         <div style={S.divider}/>
         <div style={{fontSize:10,letterSpacing:"2px",color:C.red,textTransform:"uppercase",marginBottom:12,fontWeight:700}}>Job Info</div>
@@ -840,14 +956,38 @@ function JobDetail({ job, onSave, onDelete, onArchive, onClose }) {
 }
 
 // ── New Job Modal ─────────────────────────────────────────────────────────────
-function NewJobModal({ onAdd, onClose }) {
-  const [f, setF] = useState({ customer:"", company:"", product:"", qty:"", dueDate:"", decorationType:"", notes:"" });
+function NewJobModal({ onAdd, onClose, printRuns=[], onPrintRunCreated }) {
+  const [f, setF] = useState({ customer:"", company:"", product:"", qty:"", dueDate:"", decorationType:"", notes:"", printRunId:"", printRunName:"" });
+  const [newRunName, setNewRunName] = useState("");
+  const [showNewRun, setShowNewRun] = useState(false);
   const sf = (k,v) => setF(x=>({...x,[k]:v}));
   const valid = f.customer && f.product;
 
+  const SB_URL = (import.meta.env.VITE_SUPABASE_URL||"").replace(/\/rest\/v1\/?$/,"").replace(/\/+$/,"");
+  const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  const createPrintRun = async () => {
+    if(!newRunName.trim()) return;
+    try {
+      const res = await fetch(`${SB_URL}/rest/v1/print_runs`, {
+        method:"POST",
+        headers:{ apikey:SB_KEY, Authorization:`Bearer ${SB_KEY}`, "Content-Type":"application/json", Prefer:"return=representation" },
+        body: JSON.stringify({ name: newRunName.trim() })
+      });
+      const data = await res.json();
+      const pr = data[0];
+      if(pr?.id) {
+        onPrintRunCreated(pr);
+        setF(x=>({...x, printRunId:pr.id, printRunName:pr.name}));
+        setShowNewRun(false);
+        setNewRunName("");
+      }
+    } catch(e) { alert("Could not create print run"); }
+  };
+
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:20}}>
-      <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:6,width:"100%",maxWidth:520,padding:24,maxHeight:"90vh",overflowY:"auto"}}>
+      <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:6,width:"100%",maxWidth:540,padding:24,maxHeight:"90vh",overflowY:"auto"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
           <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:4,color:C.text}}>NEW JOB</div>
           <button style={S.btn("o")} onClick={onClose}>✕</button>
@@ -870,7 +1010,36 @@ function NewJobModal({ onAdd, onClose }) {
           </div>
         </div>
         <div style={{height:12}}/>
-        <div><label style={S.lbl}>Notes</label><textarea style={S.ta} value={f.notes} onChange={e=>sf("notes",e.target.value)} rows={3}/></div>
+
+        {/* Print Run */}
+        <div style={{marginBottom:14,padding:"12px 14px",background:"#faf8f4",border:`1px solid ${C.border}`,borderRadius:4}}>
+          <label style={{...S.lbl,marginBottom:8}}>🖨 Print Run <span style={{color:C.muted,fontWeight:400,textTransform:"none",letterSpacing:0}}>(optional — link jobs with the same screens/setup)</span></label>
+          {f.printRunId ? (
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{flex:1,padding:"6px 10px",background:"#edf7f1",border:`1px solid ${C.green}44`,borderRadius:3,fontSize:12,color:C.green,fontWeight:700}}>🖨 {f.printRunName}</div>
+              <button style={{...S.btn("o"),padding:"4px 10px",fontSize:10}} onClick={()=>setF(x=>({...x,printRunId:"",printRunName:""}))}>Remove</button>
+            </div>
+          ) : (
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              <select style={{...S.sel,flex:1}} value="" onChange={e=>{
+                const pr = printRuns.find(r=>r.id===e.target.value);
+                if(pr) setF(x=>({...x, printRunId:pr.id, printRunName:pr.name}));
+              }}>
+                <option value="">— Select existing print run —</option>
+                {printRuns.map(pr=><option key={pr.id} value={pr.id}>{pr.name}</option>)}
+              </select>
+              <button style={{...S.btn("o"),padding:"6px 12px",fontSize:10,whiteSpace:"nowrap"}} onClick={()=>setShowNewRun(v=>!v)}>+ New Run</button>
+            </div>
+          )}
+          {showNewRun&&!f.printRunId&&(
+            <div style={{display:"flex",gap:8,marginTop:8}}>
+              <input style={{...S.inp,flex:1}} placeholder="e.g. Tofino Eagle Summer Run" value={newRunName} onChange={e=>setNewRunName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&createPrintRun()}/>
+              <button style={{...S.btn("g"),padding:"6px 12px",fontSize:10}} onClick={createPrintRun}>Create</button>
+            </div>
+          )}
+        </div>
+
+        <div><label style={S.lbl}>Notes</label><textarea style={S.ta} value={f.notes} onChange={e=>sf("notes",e.target.value)} rows={2}/></div>
         <div style={{display:"flex",gap:10,marginTop:20}}>
           <button style={{...S.btn("p"),flex:1,padding:12,fontSize:12,letterSpacing:2}} disabled={!valid} onClick={()=>valid&&onAdd(f)}>Create Job →</button>
           <button style={S.btn("o")} onClick={onClose}>Cancel</button>
