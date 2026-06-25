@@ -135,6 +135,7 @@ function r2j(r) {
     priority: r.priority || 99,
     multiOrder: r.multi_order || false,
     isRush: r.is_rush || false,
+    multiOrder: r.multi_order || false,
     printRunId: r.print_run_id || null,
     printRunName: r.print_run_name || "",
     createdAt: r.created_at || "",
@@ -212,6 +213,7 @@ export default function App() {
         production_assignee: job.productionAssignee,
         files: job.files || [],
         is_rush: job.isRush || false,
+        multi_order: job.multiOrder || false,
         print_run_id: job.printRunId || null,
         print_run_name: job.printRunName || null,
       }, { id: job.id });
@@ -250,6 +252,8 @@ export default function App() {
         lupe_checklist: {},
         priority: jobs.length + 1,
         source: "scheduler",
+        is_rush: false,
+        multi_order: false,
         print_run_id: fields.printRunId||null,
         print_run_name: fields.printRunName||null,
       });
@@ -552,6 +556,19 @@ function JobCard({ job, selected, onClick, onDelete }) {
           {job.dueDate&&<span style={{fontSize:10,color:"rgba(255,255,255,.8)",marginLeft:"auto",fontFamily:"'DM Mono',monospace"}}>Due: {new Date(job.dueDate+"T00:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</span>}
         </div>
       )}
+      {/* Print run banner */}
+      {job.printRunName&&(
+        <div style={{background:"#4a1a7a",padding:"3px 10px",display:"flex",alignItems:"center",gap:6}}>
+          <span style={{fontSize:10,fontWeight:700,letterSpacing:"2px",color:"#d4a8ff",fontFamily:"'DM Mono',monospace"}}>🖨 PRINT RUN</span>
+          <span style={{fontSize:10,color:"#c084fc",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:"'DM Mono',monospace"}}>{job.printRunName}</span>
+        </div>
+      )}
+      {/* Multi-item shipment banner */}
+      {job.multiOrder&&(
+        <div style={{background:"#0a3d4a",padding:"3px 10px",display:"flex",alignItems:"center",gap:6}}>
+          <span style={{fontSize:10,fontWeight:700,letterSpacing:"2px",color:"#67e8f9",fontFamily:"'DM Mono',monospace"}}>⊕ MULTI-ITEM SHIPMENT</span>
+        </div>
+      )}
       <div onClick={onClick} style={{padding:"10px 12px",cursor:"pointer",transition:"all .15s"}}>
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:6}}>
           <div>
@@ -801,6 +818,17 @@ function JobDetail({ job, onSave, onDelete, onArchive, onClose, printRuns=[], on
           <div>
             <div style={{fontSize:12,fontWeight:700,letterSpacing:"1px",textTransform:"uppercase",color:f.isRush?C.red:C.muted,fontFamily:"'DM Mono',monospace"}}>⚡ Rush Job</div>
             <div style={{fontSize:11,color:C.sub,fontFamily:"'DM Sans',sans-serif"}}>Flags this job as urgent — sorted to top of every column</div>
+          </div>
+        </div>
+
+        <div onClick={()=>{const u={...f,multiOrder:!f.multiOrder};setF(u);setDirty(true);}}
+          style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",marginBottom:4,background:f.multiOrder?"#e0f7fa":"#faf8f4",border:`2px solid ${f.multiOrder?"#0097a7":"#ddd"}`,borderRadius:4,cursor:"pointer",userSelect:"none"}}>
+          <div style={{width:22,height:22,borderRadius:3,background:f.multiOrder?"#0097a7":"#fff",border:`2px solid ${f.multiOrder?"#0097a7":"#ccc"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            {f.multiOrder&&<span style={{color:"#fff",fontSize:13,lineHeight:1}}>✓</span>}
+          </div>
+          <div>
+            <div style={{fontSize:12,fontWeight:700,letterSpacing:"1px",textTransform:"uppercase",color:f.multiOrder?"#0097a7":C.muted,fontFamily:"'DM Mono',monospace"}}>⊕ Multi-Item Shipment</div>
+            <div style={{fontSize:11,color:C.sub,fontFamily:"'DM Sans',sans-serif"}}>Links with other products that must ship together to the same customer</div>
           </div>
         </div>
 
