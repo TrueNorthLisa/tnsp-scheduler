@@ -122,25 +122,13 @@ function printSummary(jobs) {
     const col = s.color;
 
     const jobRows = sJobs.map(j=>{
-      const isLupe = isLupeStage(j.stage);
-      const checklist = isLupe ? LUPE_CHECKLIST : LISA_CHECKLIST;
-      const clData = isLupe ? j.lupeChecklist : j.lisaChecklist;
-      const done = checklist.filter(c=>clData[c.key]).length;
-      const total = checklist.length;
-      const pct = total ? Math.round((done/total)*100) : 0;
       const due = j.dueDate ? new Date(j.dueDate+"T00:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"}) : "—";
-
-      const checkDots = checklist.map(c=>
-        `<span style="color:${clData[c.key]?"#2a7a4b":"#ddd"};font-size:14px;line-height:1" title="${c.label}">${clData[c.key]?"●":"○"}</span>`
-      ).join(" ");
 
       const flags = [
         j.isRush?`<span style="background:#c8392b;color:#fff;padding:1px 6px;border-radius:2px;font-size:9px;font-weight:700;letter-spacing:1px">⚡ RUSH</span>`:"",
         j.multiOrder?`<span style="background:#0097a7;color:#fff;padding:1px 6px;border-radius:2px;font-size:9px;font-weight:700;letter-spacing:1px">⊕ MULTI</span>`:"",
         j.printRunName?`<span style="background:#4a1a7a;color:#d4a8ff;padding:1px 6px;border-radius:2px;font-size:9px;font-weight:700;letter-spacing:1px">🖨 ${j.printRunName}</span>`:"",
       ].filter(Boolean).join(" ");
-
-      const progressBar = `<div style="width:60px;height:5px;background:#e0dbd4;border-radius:3px;display:inline-block;vertical-align:middle;margin-right:4px"><div style="width:${pct}%;height:100%;background:${pct===100?"#2a7a4b":"#c49a2a"};border-radius:3px"></div></div>`;
 
       return `<tr style="border-bottom:1px solid #f0ede8">
         <td style="padding:7px 10px;font-weight:700;color:#c49a2a;white-space:nowrap;font-size:11px">#${j.jobNum||"—"}</td>
@@ -150,9 +138,8 @@ function printSummary(jobs) {
         </td>
         <td style="padding:7px 10px;font-size:11px;color:#444">${j.product||"—"}${j.qty?`<span style="color:#aaa"> · ${j.qty} u</span>`:""}</td>
         <td style="padding:7px 10px;font-size:11px;text-align:center;white-space:nowrap;font-weight:${j.isRush?"700":"400"};color:${j.isRush?"#c8392b":"#444"}">${due}</td>
-        <td style="padding:7px 10px;white-space:nowrap">${progressBar}<span style="font-size:10px;color:#888">${done}/${total}</span><br/><span style="font-size:11px;line-height:1.8;letter-spacing:2px">${checkDots}</span></td>
         <td style="padding:7px 10px;font-size:11px">${flags||"<span style='color:#ddd'>—</span>"}</td>
-        <td style="padding:7px 10px;font-size:10px;color:#666;max-width:160px">${j.notes?j.notes.substring(0,70)+(j.notes.length>70?"…":""):"<span style='color:#ddd'>—</span>"}</td>
+        <td style="padding:7px 10px;font-size:11px;color:#444">${j.notes||"<span style='color:#ddd'>—</span>"}</td>
       </tr>`;
     }).join("");
 
@@ -169,7 +156,6 @@ function printSummary(jobs) {
             <th style="padding:5px 10px;text-align:left;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#999;border-bottom:1px solid #e0dbd4">Customer</th>
             <th style="padding:5px 10px;text-align:left;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#999;border-bottom:1px solid #e0dbd4">Product</th>
             <th style="padding:5px 10px;text-align:center;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#999;border-bottom:1px solid #e0dbd4">Due</th>
-            <th style="padding:5px 10px;text-align:left;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#999;border-bottom:1px solid #e0dbd4">Progress</th>
             <th style="padding:5px 10px;text-align:left;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#999;border-bottom:1px solid #e0dbd4">Flags</th>
             <th style="padding:5px 10px;text-align:left;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#999;border-bottom:1px solid #e0dbd4">Notes</th>
           </tr>
@@ -210,13 +196,10 @@ function printSummary(jobs) {
   ${sections||`<div style="color:#aaa;font-size:13px;padding:40px 0;text-align:center">No active jobs.</div>`}
 
   <div style="margin-top:20px;padding-top:14px;border-top:1px solid #e0dbd4;display:flex;gap:20px;flex-wrap:wrap;font-size:10px;color:#888">
-    <span style="font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#aaa">Legend:</span>
-    <span><span style="color:#2a7a4b">●</span> Checklist item complete &nbsp; <span style="color:#ddd">○</span> Incomplete</span>
-    <span>Lisa: 7 items (Deposit → Receiving Doc)</span>
-    <span>Lupe: 4 items (Product Received → On Carts)</span>
-    <span style="color:#c8392b">⚡ Rush</span>
-    <span style="color:#0097a7">⊕ Multi-item shipment</span>
-    <span style="color:#7c4dbd">🖨 Print run</span>
+    <span style="font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#aaa">Flags:</span>
+    <span style="color:#c8392b">⚡ Rush — prioritize above all others</span>
+    <span style="color:#0097a7">⊕ Multi-item — do not ship until all items for this customer are ready</span>
+    <span style="color:#7c4dbd">🖨 Print run — run all products in this group at the same time</span>
   </div>
 
   <div class="no-print" style="margin-top:24px;text-align:center">
