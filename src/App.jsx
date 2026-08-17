@@ -102,7 +102,7 @@ function r2j(r) {
     lupeChecklist:r.lupe_checklist||{}, productionAssignee:r.production_assignee||"",
     priority:r.priority||99, isRush:r.is_rush||false,
     multiOrder:r.multi_order||false, printRunId:r.print_run_id||null,
-    printRunName:r.print_run_name||"", files:r.files||[],
+    printRunName:r.print_run_name||"", decorationDate:r.decoration_date||null, files:r.files||[],
   };
 }
 
@@ -248,7 +248,7 @@ export default function App() {
 
   const saveJob=async(job)=>{
     try{
-      await sb.patch("jobs",{ job_num:job.jobNum, customer:job.customer, company:job.company, product:job.product, qty:job.qty, due_date:job.dueDate, decoration_type:job.decorationType, supplier:job.supplier, style_num:job.styleNum, garment_colour:job.colour, eta:job.eta, notes:job.notes, stage:job.stage, lisa_checklist:job.lisaChecklist, lupe_checklist:job.lupeChecklist, production_assignee:job.productionAssignee, files:job.files||[], is_rush:job.isRush||false, multi_order:job.multiOrder||false, print_run_id:job.printRunId||null, print_run_name:job.printRunName||null },{id:job.id});
+      await sb.patch("jobs",{ job_num:job.jobNum, customer:job.customer, company:job.company, product:job.product, qty:job.qty, due_date:job.dueDate, decoration_type:job.decorationType, supplier:job.supplier, style_num:job.styleNum, garment_colour:job.colour, eta:job.eta, notes:job.notes, stage:job.stage, lisa_checklist:job.lisaChecklist, lupe_checklist:job.lupeChecklist, production_assignee:job.productionAssignee, files:job.files||[], is_rush:job.isRush||false, multi_order:job.multiOrder||false, print_run_id:job.printRunId||null, print_run_name:job.printRunName||null, decoration_date:job.decorationDate||null },{id:job.id});
       setJobs(prev=>prev.map(j=>j.id===job.id?job:j)); if(selJob?.id===job.id)setSelJob(job); showToast("Saved ✓");
     }catch(e){showToast("Save failed");}
   };
@@ -300,6 +300,11 @@ export default function App() {
             </button>
           ))}
           <button
+            style={{padding:"6px 14px",fontSize:10,fontFamily:"'DM Mono',monospace",fontWeight:700,letterSpacing:"1px",textTransform:"uppercase",cursor:"pointer",borderRadius:3,border:`2px solid ${view==="calendar"?"#00cec9":"#555"}`,background:view==="calendar"?"#00cec9":"transparent",color:view==="calendar"?"#0d0d0d":"#888"}}
+            onClick={()=>{setView("calendar");setSelJob(null);setActiveStage(null);}}>
+            📅 Plan
+          </button>
+          <button
             style={{padding:"6px 14px",fontSize:10,fontFamily:"'DM Mono',monospace",fontWeight:700,letterSpacing:"1px",textTransform:"uppercase",cursor:"pointer",borderRadius:3,border:`2px solid ${view==="archive"?"#e8c547":"#555"}`,background:view==="archive"?"#e8c547":"transparent",color:view==="archive"?"#0d0d0d":"#888"}}
             onClick={()=>{setView("archive");setSelJob(null);setActiveStage(null);loadArchive("");}}>
             Archive
@@ -307,8 +312,7 @@ export default function App() {
           <button style={{...S.btn("p"),padding:"6px 12px",fontSize:10}} onClick={()=>setShowNew(true)}>+ New</button>
           <button
             style={{padding:"6px 12px",fontSize:10,fontFamily:"'DM Mono',monospace",fontWeight:700,letterSpacing:"1px",textTransform:"uppercase",cursor:"pointer",borderRadius:3,border:"2px solid #4a7a4b",background:"transparent",color:"#4a7a4b"}}
-            onClick={()=>printSummary(jobs)}
-            title="Open printable job summary">
+            onClick={()=>printSummary(jobs)} title="Open printable job summary">
             ⎙ Summary
           </button>
           <button style={{padding:"6px 10px",fontSize:12,fontFamily:"'DM Mono',monospace",background:"transparent",border:"2px solid #555",color:"#888",borderRadius:3,cursor:"pointer"}} onClick={loadJobs}>↺</button>
@@ -316,7 +320,7 @@ export default function App() {
       </div>
 
       <div style={{overflowX:"auto",display:"flex",gap:0,borderBottom:`1px solid ${C.border}`,background:"#eee9e0",WebkitOverflowScrolling:"touch"}}>
-        {view!=="archive"&&stageGroups.map(sg=>(
+        {view!=="archive"&&view!=="calendar"&&stageGroups.map(sg=>(
           <button key={sg.key} onClick={()=>setActiveStage(activeStage===sg.key?null:sg.key)}
             style={{flexShrink:0,padding:"8px 14px",background:activeStage===sg.key?sg.color+"22":"transparent",border:"none",borderBottom:activeStage===sg.key?`3px solid ${sg.color}`:"3px solid transparent",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:"1px",textTransform:"uppercase",color:activeStage===sg.key?sg.color:C.muted,whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:5}}>
             <span style={{width:7,height:7,borderRadius:"50%",background:sg.color,display:"inline-block",flexShrink:0}}/>
@@ -327,6 +331,14 @@ export default function App() {
       </div>
 
       {loading&&<div style={{textAlign:"center",padding:60,color:C.muted,letterSpacing:2}}>LOADING…</div>}
+
+      {!loading&&view==="calendar"&&(
+        <CalendarView jobs={jobs} onDateChange={async(jobId,date)=>{
+          const updated=jobs.map(j=>j.id===jobId?{...j,decorationDate:date}:j);
+          setJobs(updated);
+          await sb.patch("jobs",{decoration_date:date},{id:jobId});
+        }}/>
+      )}
 
       {!loading&&view==="archive"&&(
         <div style={{flex:1,overflowY:"auto",padding:20,background:C.bg}}>
@@ -444,6 +456,151 @@ export default function App() {
 
       {showNew&&<NewJobModal printRuns={printRuns} onAdd={f=>{addJob(f);setShowNew(false);}} onPrintRunCreated={pr=>setPrintRuns(prev=>[...prev,pr])} onClose={()=>setShowNew(false)}/>}
       {toast&&<div style={{position:"fixed",bottom:20,left:"50%",transform:"translateX(-50%)",background:C.green,color:"#fff",padding:"10px 20px",borderRadius:4,fontSize:11,letterSpacing:1,zIndex:9999}}>{toast}</div>}
+    </div>
+  );
+}
+
+// ── Calendar View ─────────────────────────────────────────────────────────────
+function CalendarView({ jobs, onDateChange }) {
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // Build 4-week grid starting from Monday of current week
+  const startDay = new Date(today);
+  startDay.setDate(today.getDate() - ((today.getDay()+6)%7)); // Monday
+
+  const days = Array.from({length:28},(_,i)=>{
+    const d = new Date(startDay);
+    d.setDate(startDay.getDate()+i);
+    return d;
+  });
+
+  const [weekOffset,setWeekOffset] = useState(0);
+  const [dragJob,setDragJob] = useState(null);
+  const [dragOver,setDragOver] = useState(null);
+
+  // Offset start by weeks
+  const offsetStart = new Date(startDay);
+  offsetStart.setDate(startDay.getDate() + weekOffset*7);
+  const gridDays = Array.from({length:28},(_,i)=>{
+    const d = new Date(offsetStart);
+    d.setDate(offsetStart.getDate()+i);
+    return d;
+  });
+
+  const fmt = (d) => d.toISOString().slice(0,10);
+  const unscheduled = jobs.filter(j=>j.stage!=="archived"&&!j.decorationDate);
+  const scheduled = jobs.filter(j=>j.stage!=="archived"&&j.decorationDate);
+
+  const DEC_LABEL = {
+    "Screen Printing":"SP","Embroidery":"EM","DTF":"DTF","Vinyl":"VI","Mixed":"MX",
+  };
+  const decColor = (t) => {
+    if(!t) return {bg:"#f5f2eb",dot:"#aaa"};
+    const k=Object.keys(DEC_COLORS).find(k=>t.toLowerCase().includes(k.toLowerCase()));
+    return k?DEC_COLORS[k]:{bg:"#f5f2eb",dot:"#aaa"};
+  };
+
+  const CalChip = ({job}) => {
+    const dc = decColor(job.decorationType);
+    return (
+      <div
+        draggable
+        onDragStart={e=>{e.dataTransfer.effectAllowed="move";setDragJob(job);}}
+        onDragEnd={()=>setDragJob(null)}
+        style={{background:job.isRush?"#fff0ee":dc.bg,border:`1px solid ${job.isRush?"#c8392b":dc.border||"#e0dbd4"}`,borderLeft:`3px solid ${job.isRush?"#c8392b":dc.dot||"#aaa"}`,borderRadius:3,padding:"3px 6px",marginBottom:3,cursor:"grab",userSelect:"none",fontSize:10,fontFamily:"'DM Mono',monospace"}}>
+        <div style={{fontWeight:700,color:"#0d0d0d",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:150}}>
+          {job.isRush&&"⚡ "}{job.customer||"—"}
+        </div>
+        <div style={{color:"#888",fontSize:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+          #{job.jobNum} {job.decorationType?`· ${DEC_LABEL[job.decorationType]||job.decorationType}`:""}
+          {job.dueDate&&<span style={{color:job.isRush?"#c8392b":"#aaa",marginLeft:4}}>Due:{new Date(job.dueDate+"T00:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</span>}
+        </div>
+      </div>
+    );
+  };
+
+  const DAYS_OF_WEEK = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+  return (
+    <div style={{display:"flex",height:"calc(100vh - 100px)",overflow:"hidden"}}>
+      {/* Unscheduled sidebar */}
+      <div style={{width:200,flexShrink:0,borderRight:`1px solid ${C.border}`,background:"#faf8f4",display:"flex",flexDirection:"column",overflow:"hidden"}}
+        onDragOver={e=>{e.preventDefault();setDragOver("unscheduled");}}
+        onDragLeave={()=>setDragOver(null)}
+        onDrop={e=>{e.preventDefault();if(dragJob){onDateChange(dragJob.id,null);}setDragOver(null);}}>
+        <div style={{padding:"10px 12px",borderBottom:`1px solid ${C.border}`,background:dragOver==="unscheduled"?"#e8f5e9":"#eee9e0",flexShrink:0}}>
+          <div style={{fontSize:10,letterSpacing:"1.5px",textTransform:"uppercase",color:C.muted,fontFamily:"'DM Mono',monospace"}}>Unscheduled</div>
+          <div style={{fontSize:11,color:C.muted}}>{unscheduled.length} job{unscheduled.length!==1?"s":""}</div>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"8px 8px",WebkitOverflowScrolling:"touch",background:dragOver==="unscheduled"?"#f0fff4":"transparent",transition:"background .15s"}}>
+          {unscheduled.length===0&&<div style={{fontSize:10,color:"#ccc",textAlign:"center",padding:"20px 0",letterSpacing:1}}>ALL SCHEDULED</div>}
+          {unscheduled.map(job=><CalChip key={job.id} job={job}/>)}
+        </div>
+      </div>
+
+      {/* Calendar grid */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        {/* Nav */}
+        <div style={{display:"flex",alignItems:"center",gap:12,padding:"8px 14px",borderBottom:`1px solid ${C.border}`,background:"#eee9e0",flexShrink:0}}>
+          <button style={{...S.btn("o"),padding:"4px 10px",fontSize:11}} onClick={()=>setWeekOffset(v=>v-1)}>← Prev</button>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,letterSpacing:1,textTransform:"uppercase",color:C.text}}>
+            {gridDays[0].toLocaleDateString("en-CA",{month:"short",day:"numeric"})} – {gridDays[27].toLocaleDateString("en-CA",{month:"short",day:"numeric",year:"numeric"})}
+          </div>
+          <button style={{...S.btn("o"),padding:"4px 10px",fontSize:11}} onClick={()=>setWeekOffset(v=>v+1)}>Next →</button>
+          {weekOffset!==0&&<button style={{...S.btn("o"),padding:"4px 10px",fontSize:11}} onClick={()=>setWeekOffset(0)}>Today</button>}
+          <div style={{marginLeft:"auto",fontSize:10,color:C.muted,fontFamily:"'DM Mono',monospace"}}>
+            {scheduled.length} job{scheduled.length!==1?"s":""} scheduled
+          </div>
+        </div>
+
+        {/* Day-of-week headers */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
+          {DAYS_OF_WEEK.map(d=>(
+            <div key={d} style={{padding:"5px 8px",fontSize:9,letterSpacing:"1.5px",textTransform:"uppercase",color:C.muted,fontFamily:"'DM Mono',monospace",borderRight:`1px solid ${C.border}`,textAlign:"center"}}>{d}</div>
+          ))}
+        </div>
+
+        {/* 4-week grid */}
+        <div style={{flex:1,display:"grid",gridTemplateColumns:"repeat(7,1fr)",gridTemplateRows:"repeat(4,1fr)",overflow:"hidden"}}>
+          {gridDays.map((day,i)=>{
+            const dateStr = fmt(day);
+            const isToday = dateStr===fmt(today);
+            const isWeekend = day.getDay()===0||day.getDay()===6;
+            const dayJobs = scheduled.filter(j=>j.decorationDate===dateStr);
+            const isDragTarget = dragOver===dateStr;
+
+            return (
+              <div key={dateStr}
+                onDragOver={e=>{e.preventDefault();setDragOver(dateStr);}}
+                onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget))setDragOver(null);}}
+                onDrop={e=>{e.preventDefault();if(dragJob){onDateChange(dragJob.id,dateStr);}setDragOver(null);}}
+                style={{
+                  borderRight:`1px solid ${C.border}`,
+                  borderBottom:`1px solid ${C.border}`,
+                  padding:"4px 5px",
+                  background:isDragTarget?"#e8f5e9":isToday?"#fff8e6":isWeekend?"#f7f4ef":C.bg,
+                  outline:isDragTarget?`2px solid ${C.green}`:isToday?`2px solid #e8c547`:"none",
+                  outlineOffset:-2,
+                  transition:"background .1s",
+                  overflow:"hidden",
+                  minHeight:0,
+                }}>
+                {/* Date number */}
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                  <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,fontWeight:isToday?700:400,color:isToday?C.gold:isWeekend?"#bbb":C.muted}}>
+                    {day.getDate()===1?day.toLocaleDateString("en-CA",{month:"short",day:"numeric"}):day.getDate()}
+                  </span>
+                  {dayJobs.length>0&&<span style={{fontSize:8,color:C.muted,background:"#e0dbd4",padding:"1px 4px",borderRadius:8}}>{dayJobs.length}</span>}
+                </div>
+                {/* Job chips */}
+                <div style={{overflow:"hidden"}}>
+                  {dayJobs.map(job=><CalChip key={job.id} job={job}/>)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -592,6 +749,7 @@ function JobDetail({job,onSave,onDelete,onArchive,onClose,printRuns=[],onPrintRu
       <div style={{fontSize:10,letterSpacing:"2px",color:C.red,textTransform:"uppercase",marginBottom:12,fontWeight:700}}>Job Info</div>
       <div style={S.g2}><Field label="Customer Name" k="customer" value={f.customer} onChange={update}/><Field label="Company" k="company" value={f.company} onChange={update}/></div>
       <div style={S.g3}><Field label="Job #" k="jobNum" value={f.jobNum} onChange={update}/><Field label="Quantity" k="qty" type="number" value={f.qty} onChange={update}/><Field label="Due Date" k="dueDate" type="date" value={f.dueDate} onChange={update}/></div>
+      <Field label="🗓 Decoration Date (Production Calendar)" k="decorationDate" type="date" value={f.decorationDate} onChange={update}/>
       <Field label="Product / Garment" k="product" value={f.product} onChange={update}/>
       <Field label="Decoration Type" k="decorationType" opts={["Screen Printing","Embroidery","DTF","Vinyl","Mixed"]} value={f.decorationType} onChange={update}/>
       <div style={S.divider}/>
