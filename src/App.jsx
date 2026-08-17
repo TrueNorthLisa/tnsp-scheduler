@@ -611,7 +611,8 @@ function JobCard({job,selected,onClick,onDelete}){
   const lisaDone=LISA_CHECKLIST.filter(c=>job.lisaChecklist[c.key]).length;
   const lupeDone=LUPE_CHECKLIST.filter(c=>job.lupeChecklist[c.key]).length;
   const isLupe=isLupeStage(job.stage);
-  const total=isLupe?LUPE_CHECKLIST.length:LISA_CHECKLIST.length;
+  const hideProgress=["boxing","ready_to_ship","shipping"].includes(job.stage);
+  const total=hideProgress?0:isLupe?LUPE_CHECKLIST.length:LISA_CHECKLIST.length;
   const done=isLupe?lupeDone:lisaDone;
   const dk=Object.keys(DEC_COLORS).find(k=>(job.decorationType||"").toLowerCase().includes(k.toLowerCase()));
   const dc=dk?DEC_COLORS[dk]:null;
