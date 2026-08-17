@@ -575,7 +575,7 @@ function CalendarView({ jobs, onDateChange }) {
         </div>
 
         {/* 4-week grid Mon–Fri */}
-        <div style={{flex:1,display:"grid",gridTemplateColumns:"repeat(5,1fr)",gridTemplateRows:"repeat(4,1fr)",overflow:"hidden"}}>
+        <div style={{flex:1,display:"grid",gridTemplateColumns:"repeat(5,1fr)",gridAutoRows:"minmax(120px,auto)",overflowY:"auto",alignContent:"start",WebkitOverflowScrolling:"touch"}}>
           {gridDays.map((day)=>{
             const dateStr = fmt(day);
             const isToday = dateStr===fmt(today);
@@ -595,8 +595,6 @@ function CalendarView({ jobs, onDateChange }) {
                   outline:isDragTarget?`2px solid ${C.green}`:isToday?`2px solid #e8c547`:"none",
                   outlineOffset:-2,
                   transition:"background .1s",
-                  overflow:"hidden",
-                  minHeight:0,
                 }}>
                 {/* Date number */}
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
