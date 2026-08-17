@@ -226,6 +226,8 @@ export default function App() {
   const [archiveSearch,setArchiveSearch]=useState("");
   const [archiveLoading,setArchiveLoading]=useState(false);
   const [printRuns,setPrintRuns]=useState([]);
+  const [pendingCalendarSaves, setPendingCalendarSaves] = useState({});
+  const pendingCalendarSavesRef = useRef({});
   const pollRef=useRef(null);
 
   useEffect(()=>{ loadJobs(); loadPrintRuns(); pollRef.current=setInterval(loadJobs,60000); return()=>clearInterval(pollRef.current); },[]);
@@ -248,8 +250,14 @@ export default function App() {
       setJobs(prev=>{
         const fresh=(Array.isArray(data)?data:[]).map(r2j);
         return fresh.map(fj=>{ const local=prev.find(lj=>lj.id===fj.id); if(!local)return fj;
-          return{...fj, lisaChecklist:Object.keys(fj.lisaChecklist||{}).length>=Object.keys(local.lisaChecklist||{}).length?fj.lisaChecklist:local.lisaChecklist,
-            lupeChecklist:Object.keys(fj.lupeChecklist||{}).length>=Object.keys(local.lupeChecklist||{}).length?fj.lupeChecklist:local.lupeChecklist}; });
+          return{...fj,
+            lisaChecklist:Object.keys(fj.lisaChecklist||{}).length>=Object.keys(local.lisaChecklist||{}).length?fj.lisaChecklist:local.lisaChecklist,
+            lupeChecklist:Object.keys(fj.lupeChecklist||{}).length>=Object.keys(local.lupeChecklist||{}).length?fj.lupeChecklist:local.lupeChecklist,
+            // Keep local decoration date if there are unsaved pending changes
+            decorationDate: pendingCalendarSavesRef.current[fj.id] !== undefined
+              ? pendingCalendarSavesRef.current[fj.id]
+              : fj.decorationDate,
+          }; });
       });
     }catch(e){console.error(e);}
     setLoading(false);
@@ -342,11 +350,33 @@ export default function App() {
       {loading&&<div style={{textAlign:"center",padding:60,color:C.muted,letterSpacing:2}}>LOADING…</div>}
 
       {!loading&&view==="calendar"&&(
-        <CalendarView jobs={jobs} onDateChange={async(jobId,date)=>{
-          const updated=jobs.map(j=>j.id===jobId?{...j,decorationDate:date}:j);
-          setJobs(updated);
-          await sb.patch("jobs",{decoration_date:date},{id:jobId});
-        }}/>
+        <CalendarView
+          jobs={jobs}
+          pending={pendingCalendarSaves}
+          onDateChange={(jobId,date)=>{
+            // Update local state immediately
+            setJobs(prev=>prev.map(j=>j.id===jobId?{...j,decorationDate:date}:j));
+            // Track as pending save
+            setPendingCalendarSaves(prev=>{
+              const next={...prev,[jobId]:date};
+              pendingCalendarSavesRef.current=next;
+              return next;
+            });
+          }}
+          onSaveCalendar={async()=>{
+            const saves=pendingCalendarSavesRef.current;
+            if(!Object.keys(saves).length){showToast("Nothing to save");return;}
+            try{
+              await Promise.all(Object.entries(saves).map(([id,date])=>
+                sb.patch("jobs",{decoration_date:date||null},{id})
+              ));
+              setPendingCalendarSaves({});
+              pendingCalendarSavesRef.current={};
+              showToast(`Calendar saved ✓`);
+            }catch(e){showToast("Save failed — try again");}
+          }}
+          loadJobs={loadJobs}
+        />
       )}
 
       {!loading&&view==="archive"&&(
@@ -470,7 +500,8 @@ export default function App() {
 }
 
 // ── Calendar View ─────────────────────────────────────────────────────────────
-function CalendarView({ jobs, onDateChange }) {
+function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs }) {
+  const hasPending = Object.keys(pending||{}).length > 0;
   const today = new Date(); today.setHours(0,0,0,0);
 
   // Build 4-week grid starting from Monday of current week
@@ -562,6 +593,15 @@ function CalendarView({ jobs, onDateChange }) {
           <button style={{...S.btn("o"),padding:"4px 10px",fontSize:11}} onClick={()=>setWeekOffset(v=>v+1)}>Next →</button>
           {weekOffset!==0&&<button style={{...S.btn("o"),padding:"4px 10px",fontSize:11}} onClick={()=>setWeekOffset(0)}>Today</button>}
           <button style={{...S.btn("o"),padding:"4px 10px",fontSize:11}} onClick={()=>loadJobs()}>↺ Sync</button>
+          {hasPending&&(
+            <button style={{...S.btn("g"),padding:"6px 16px",fontSize:11,letterSpacing:"1px",animation:"pulse 1.5s infinite"}}
+              onClick={onSaveCalendar}>
+              ● Save Calendar ({Object.keys(pending).length} change{Object.keys(pending).length!==1?"s":""})
+            </button>
+          )}
+          {!hasPending&&(
+            <span style={{fontSize:10,color:C.green,fontFamily:"'DM Mono',monospace",letterSpacing:"1px"}}>✓ Saved</span>
+          )}
           <div style={{marginLeft:"auto",fontSize:10,color:C.muted,fontFamily:"'DM Mono',monospace"}}>
             {scheduled.length} job{scheduled.length!==1?"s":""} scheduled
           </div>
