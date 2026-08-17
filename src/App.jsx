@@ -481,15 +481,11 @@ function CalendarView({ jobs, onDateChange }) {
   // Offset start by weeks
   const offsetStart = new Date(startDay);
   offsetStart.setDate(startDay.getDate() + weekOffset*7);
-  const gridDays = Array.from({length:28},(_,i)=>{
-    const d = new Date(offsetStart);
-    d.setDate(offsetStart.getDate()+i);
-    return d;
-  });
 
   const fmt = (d) => d.toISOString().slice(0,10);
-  const unscheduled = jobs.filter(j=>j.stage!=="archived"&&!j.decorationDate);
-  const scheduled = jobs.filter(j=>j.stage!=="archived"&&j.decorationDate);
+  const DONE_STAGES = ["boxing","ready_to_ship","shipping","archived"];
+  const unscheduled = jobs.filter(j=>!DONE_STAGES.includes(j.stage)&&!j.decorationDate);
+  const scheduled = jobs.filter(j=>!DONE_STAGES.includes(j.stage)&&j.decorationDate);
 
   const DEC_LABEL = {
     "Screen Printing":"SP","Embroidery":"EM","DTF":"DTF","Vinyl":"VI","Mixed":"MX",
@@ -519,7 +515,15 @@ function CalendarView({ jobs, onDateChange }) {
     );
   };
 
-  const DAYS_OF_WEEK = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  const DAYS_OF_WEEK = ["Mon","Tue","Wed","Thu","Fri"];
+
+  // Build 20 weekdays (Mon–Fri × 4 weeks)
+  const gridDays = [];
+  const cursor = new Date(offsetStart);
+  while(gridDays.length < 20){
+    if(cursor.getDay()!==0&&cursor.getDay()!==6) gridDays.push(new Date(cursor));
+    cursor.setDate(cursor.getDate()+1);
+  }
 
   return (
     <div style={{display:"flex",height:"calc(100vh - 100px)",overflow:"hidden"}}>
@@ -544,7 +548,7 @@ function CalendarView({ jobs, onDateChange }) {
         <div style={{display:"flex",alignItems:"center",gap:12,padding:"8px 14px",borderBottom:`1px solid ${C.border}`,background:"#eee9e0",flexShrink:0}}>
           <button style={{...S.btn("o"),padding:"4px 10px",fontSize:11}} onClick={()=>setWeekOffset(v=>v-1)}>← Prev</button>
           <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,letterSpacing:1,textTransform:"uppercase",color:C.text}}>
-            {gridDays[0].toLocaleDateString("en-CA",{month:"short",day:"numeric"})} – {gridDays[27].toLocaleDateString("en-CA",{month:"short",day:"numeric",year:"numeric"})}
+            {gridDays[0].toLocaleDateString("en-CA",{month:"short",day:"numeric"})} – {gridDays[19].toLocaleDateString("en-CA",{month:"short",day:"numeric",year:"numeric"})}
           </div>
           <button style={{...S.btn("o"),padding:"4px 10px",fontSize:11}} onClick={()=>setWeekOffset(v=>v+1)}>Next →</button>
           {weekOffset!==0&&<button style={{...S.btn("o"),padding:"4px 10px",fontSize:11}} onClick={()=>setWeekOffset(0)}>Today</button>}
@@ -554,18 +558,17 @@ function CalendarView({ jobs, onDateChange }) {
         </div>
 
         {/* Day-of-week headers */}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
           {DAYS_OF_WEEK.map(d=>(
             <div key={d} style={{padding:"5px 8px",fontSize:9,letterSpacing:"1.5px",textTransform:"uppercase",color:C.muted,fontFamily:"'DM Mono',monospace",borderRight:`1px solid ${C.border}`,textAlign:"center"}}>{d}</div>
           ))}
         </div>
 
-        {/* 4-week grid */}
-        <div style={{flex:1,display:"grid",gridTemplateColumns:"repeat(7,1fr)",gridTemplateRows:"repeat(4,1fr)",overflow:"hidden"}}>
-          {gridDays.map((day,i)=>{
+        {/* 4-week grid Mon–Fri */}
+        <div style={{flex:1,display:"grid",gridTemplateColumns:"repeat(5,1fr)",gridTemplateRows:"repeat(4,1fr)",overflow:"hidden"}}>
+          {gridDays.map((day)=>{
             const dateStr = fmt(day);
             const isToday = dateStr===fmt(today);
-            const isWeekend = day.getDay()===0||day.getDay()===6;
             const dayJobs = scheduled.filter(j=>j.decorationDate===dateStr);
             const isDragTarget = dragOver===dateStr;
 
@@ -578,7 +581,7 @@ function CalendarView({ jobs, onDateChange }) {
                   borderRight:`1px solid ${C.border}`,
                   borderBottom:`1px solid ${C.border}`,
                   padding:"4px 5px",
-                  background:isDragTarget?"#e8f5e9":isToday?"#fff8e6":isWeekend?"#f7f4ef":C.bg,
+                  background:isDragTarget?"#e8f5e9":isToday?"#fff8e6":C.bg,
                   outline:isDragTarget?`2px solid ${C.green}`:isToday?`2px solid #e8c547`:"none",
                   outlineOffset:-2,
                   transition:"background .1s",
@@ -587,7 +590,7 @@ function CalendarView({ jobs, onDateChange }) {
                 }}>
                 {/* Date number */}
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
-                  <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,fontWeight:isToday?700:400,color:isToday?C.gold:isWeekend?"#bbb":C.muted}}>
+                  <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,fontWeight:isToday?700:400,color:isToday?C.gold:C.muted}}>
                     {day.getDate()===1?day.toLocaleDateString("en-CA",{month:"short",day:"numeric"}):day.getDate()}
                   </span>
                   {dayJobs.length>0&&<span style={{fontSize:8,color:C.muted,background:"#e0dbd4",padding:"1px 4px",borderRadius:8}}>{dayJobs.length}</span>}
