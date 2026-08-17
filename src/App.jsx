@@ -567,16 +567,17 @@ function CalendarView({ jobs, onDateChange }) {
           </div>
         </div>
 
-        {/* Day-of-week headers */}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
+        {/* Day-of-week headers — sticky so they stay visible while scrolling */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",borderBottom:`1px solid ${C.border}`,flexShrink:0,position:"sticky",top:0,zIndex:10,background:"#eee9e0"}}>
           {DAYS_OF_WEEK.map(d=>(
             <div key={d} style={{padding:"5px 8px",fontSize:9,letterSpacing:"1.5px",textTransform:"uppercase",color:C.muted,fontFamily:"'DM Mono',monospace",borderRight:`1px solid ${C.border}`,textAlign:"center"}}>{d}</div>
           ))}
         </div>
 
-        {/* 4-week grid Mon–Fri */}
-        <div style={{flex:1,display:"grid",gridTemplateColumns:"repeat(5,1fr)",gridAutoRows:"minmax(120px,auto)",overflowY:"auto",alignContent:"start",WebkitOverflowScrolling:"touch"}}>
-          {gridDays.map((day)=>{
+        {/* Scrollable grid — rows grow with content */}
+        <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gridAutoRows:"minmax(140px,auto)"}}>
+            {gridDays.map((day)=>{
             const dateStr = fmt(day);
             const isToday = dateStr===fmt(today);
             const dayJobs = scheduled.filter(j=>j.decorationDate===dateStr);
@@ -610,6 +611,7 @@ function CalendarView({ jobs, onDateChange }) {
               </div>
             );
           })}
+          </div>
         </div>
       </div>
     </div>
