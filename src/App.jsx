@@ -230,6 +230,15 @@ export default function App() {
 
   useEffect(()=>{ loadJobs(); loadPrintRuns(); pollRef.current=setInterval(loadJobs,60000); return()=>clearInterval(pollRef.current); },[]);
 
+  // Pause auto-refresh on calendar view to prevent drag positions being wiped
+  useEffect(()=>{
+    if(view==="calendar"){
+      clearInterval(pollRef.current); pollRef.current=null;
+    } else {
+      if(!pollRef.current) pollRef.current=setInterval(loadJobs,60000);
+    }
+  },[view]);
+
   const loadPrintRuns=async()=>{ try{ const d=await sb.get("print_runs","?select=id,name&order=name.asc"); setPrintRuns(Array.isArray(d)?d:[]); }catch(e){setPrintRuns([]);} };
   const showToast=(msg)=>{ setToast(msg); setTimeout(()=>setToast(""),3000); };
 
@@ -552,6 +561,7 @@ function CalendarView({ jobs, onDateChange }) {
           </div>
           <button style={{...S.btn("o"),padding:"4px 10px",fontSize:11}} onClick={()=>setWeekOffset(v=>v+1)}>Next →</button>
           {weekOffset!==0&&<button style={{...S.btn("o"),padding:"4px 10px",fontSize:11}} onClick={()=>setWeekOffset(0)}>Today</button>}
+          <button style={{...S.btn("o"),padding:"4px 10px",fontSize:11}} onClick={()=>loadJobs()}>↺ Sync</button>
           <div style={{marginLeft:"auto",fontSize:10,color:C.muted,fontFamily:"'DM Mono',monospace"}}>
             {scheduled.length} job{scheduled.length!==1?"s":""} scheduled
           </div>
