@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
-const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+const SB_URL = (import.meta.env.VITE_SUPABASE_URL||"").replace(/\/rest\/v1\/?$/,"").replace(/\/+$/,"");
 const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 const sb = {
@@ -15,6 +15,7 @@ const sb = {
   patch: async (table, body, match) => {
     const q = Object.entries(match).map(([k,v])=>`${k}=eq.${v}`).join("&");
     const r = await fetch(`${SB_URL}/rest/v1/${table}?${q}`, { method:"PATCH", headers:{ apikey:SB_KEY, Authorization:`Bearer ${SB_KEY}`, "Content-Type":"application/json", Prefer:"return=representation" }, body:JSON.stringify(body) });
+    if(!r.ok){ const t=await r.text(); throw new Error(`Patch failed ${r.status}: ${t.slice(0,200)}`); }
     return r.json();
   },
   del: async (table, match) => {
@@ -265,7 +266,7 @@ export default function App() {
 
   const saveJob=async(job)=>{
     try{
-      await sb.patch("jobs",{ job_num:job.jobNum, customer:job.customer, company:job.company, product:job.product, qty:job.qty, due_date:job.dueDate, decoration_type:job.decorationType, supplier:job.supplier, style_num:job.styleNum, garment_colour:job.colour, eta:job.eta, notes:job.notes, stage:job.stage, lisa_checklist:job.lisaChecklist, lupe_checklist:job.lupeChecklist, production_assignee:job.productionAssignee, files:job.files||[], is_rush:job.isRush||false, multi_order:job.multiOrder||false, print_run_id:job.printRunId||null, print_run_name:job.printRunName||null, decoration_date:job.decorationDate||null },{id:job.id});
+      await sb.patch("jobs",{ job_num:job.jobNum, customer:job.customer, company:job.company, product:job.product, qty:job.qty, due_date:job.dueDate, decoration_type:job.decorationType, supplier:job.supplier, style_num:job.styleNum, garment_colour:job.colour, eta:job.eta, notes:job.notes, stage:job.stage, lisa_checklist:job.lisaChecklist, lupe_checklist:job.lupeChecklist, production_assignee:job.productionAssignee, files:job.files||[], is_rush:job.isRush||false, multi_order:job.multiOrder||false, print_run_id:job.printRunId||null, print_run_name:job.printRunName||null },{id:job.id});
       setJobs(prev=>prev.map(j=>j.id===job.id?job:j)); if(selJob?.id===job.id)setSelJob(job); showToast("Saved ✓");
     }catch(e){showToast("Save failed");}
   };
@@ -803,7 +804,11 @@ function JobDetail({job,onSave,onDelete,onArchive,onClose,printRuns=[],onPrintRu
       <div style={{fontSize:10,letterSpacing:"2px",color:C.red,textTransform:"uppercase",marginBottom:12,fontWeight:700}}>Job Info</div>
       <div style={S.g2}><Field label="Customer Name" k="customer" value={f.customer} onChange={update}/><Field label="Company" k="company" value={f.company} onChange={update}/></div>
       <div style={S.g3}><Field label="Job #" k="jobNum" value={f.jobNum} onChange={update}/><Field label="Quantity" k="qty" type="number" value={f.qty} onChange={update}/><Field label="Due Date" k="dueDate" type="date" value={f.dueDate} onChange={update}/></div>
-      <Field label="🗓 Decoration Date (Production Calendar)" k="decorationDate" type="date" value={f.decorationDate} onChange={update}/>
+      <Field label="🗓 Decoration Date (Production Calendar)" k="decorationDate" type="date" value={f.decorationDate} onChange={async(k,v)=>{
+        update(k,v);
+        // Save only decoration_date — don't bundle with saveJob which skips this column
+        try { await sb.patch("jobs",{decoration_date:v||null},{id:f.id}); } catch(e) {}
+      }}/>
       <Field label="Product / Garment" k="product" value={f.product} onChange={update}/>
       <Field label="Decoration Type" k="decorationType" opts={["Screen Printing","Embroidery","DTF","Vinyl","Mixed"]} value={f.decorationType} onChange={update}/>
       <div style={S.divider}/>
