@@ -343,20 +343,56 @@ export default function App() {
       </div>
 
       <div style={{overflowX:"auto",display:"flex",gap:0,borderBottom:`1px solid ${C.border}`,background:"#eee9e0",WebkitOverflowScrolling:"touch"}}>
-        {view!=="archive"&&view!=="calendar"&&view!=="harrison"&&stageGroups.map(sg=>(
-          <button key={sg.key} onClick={()=>setActiveStage(activeStage===sg.key?null:sg.key)}
-            style={{flexShrink:0,padding:"8px 14px",background:activeStage===sg.key?sg.color+"22":"transparent",border:"none",borderBottom:activeStage===sg.key?`3px solid ${sg.color}`:"3px solid transparent",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:"1px",textTransform:"uppercase",color:activeStage===sg.key?sg.color:C.muted,whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:5}}>
-            <span style={{width:7,height:7,borderRadius:"50%",background:sg.color,display:"inline-block",flexShrink:0}}/>
-            {sg.label}
-            <span style={{background:sg.color+"33",color:sg.color,borderRadius:10,padding:"1px 6px",fontSize:9}}>{sg.jobs.length}</span>
-          </button>
-        ))}
+        {view!=="archive"&&view!=="calendar"&&(view==="harrison"?LUPE_STAGES:stageGroups).map(sg=>{
+          const count = view==="harrison"
+            ? harrisonJobs.filter(j=>j.stage===sg.key).length
+            : sg.jobs?.length||0;
+          return (
+            <button key={sg.key} onClick={()=>setActiveStage(activeStage===sg.key?null:sg.key)}
+              style={{flexShrink:0,padding:"8px 14px",background:activeStage===sg.key?sg.color+"22":"transparent",border:"none",borderBottom:activeStage===sg.key?`3px solid ${sg.color}`:"3px solid transparent",cursor:"pointer",fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:"1px",textTransform:"uppercase",color:activeStage===sg.key?sg.color:C.muted,whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:5}}>
+              <span style={{width:7,height:7,borderRadius:"50%",background:sg.color,display:"inline-block",flexShrink:0}}/>
+              {sg.label}
+              <span style={{background:sg.color+"33",color:sg.color,borderRadius:10,padding:"1px 6px",fontSize:9}}>{count}</span>
+            </button>
+          );
+        })}
       </div>
 
       {loading&&<div style={{textAlign:"center",padding:60,color:C.muted,letterSpacing:2}}>LOADING…</div>}
 
       {!loading&&view==="harrison"&&(
-        <HarrisonView jobs={harrisonJobs} onOpen={(job)=>setSelJob(selJob?.id===job.id?null:job)}/>
+        <div style={{display:"flex",height:"calc(100vh - 100px)"}}>
+          <div style={{flex:1,overflowX:"auto",overflowY:"hidden",display:"flex",gap:0}}>
+            {LUPE_STAGES.filter(sg=>!activeStage||sg.key===activeStage).map(sg=>{
+              const sgJobs=harrisonJobs.filter(j=>j.stage===sg.key).sort((a,b)=>{
+                if(a.isRush&&!b.isRush)return -1; if(!a.isRush&&b.isRush)return 1;
+                return(a.priority||99)-(b.priority||99);
+              });
+              return (
+                <div key={sg.key} style={{minWidth:activeStage?"100%":280,maxWidth:activeStage?"100%":320,flex:activeStage?"1":"0 0 300px",borderRight:activeStage?"none":`1px solid ${C.border}`,display:"flex",flexDirection:"column",height:"100%",background:C.bg}}>
+                  {!activeStage&&(
+                    <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`,background:"#eee9e0",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <div style={{width:8,height:8,borderRadius:"50%",background:sg.color}}/>
+                        <span style={{fontSize:11,letterSpacing:"1.5px",textTransform:"uppercase",color:C.text}}>{sg.label}</span>
+                      </div>
+                      <span style={{fontSize:11,color:C.muted}}>{sgJobs.length}</span>
+                    </div>
+                  )}
+                  <div style={{flex:1,overflowY:"auto",padding:"10px 10px",WebkitOverflowScrolling:"touch"}}>
+                    {sgJobs.map(job=><JobCard key={job.id} job={job} selected={selJob?.id===job.id} onClick={()=>setSelJob(selJob?.id===job.id?null:job)} onDelete={deleteJob}/>)}
+                    {sgJobs.length===0&&<div style={{fontSize:10,color:"#bbb",textAlign:"center",padding:20,letterSpacing:1}}>NO JOBS</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {selJob&&(
+            <div style={{position:"fixed",top:0,right:0,bottom:0,left:0,background:"#faf8f4",overflowY:"auto",zIndex:200,boxShadow:"-4px 0 24px rgba(0,0,0,.1)"}}>
+              <JobDetail job={selJob} onSave={saveJob} onDelete={()=>deleteJob(selJob.id)} onArchive={()=>archiveJob(selJob)} onClose={()=>setSelJob(null)} printRuns={printRuns} onPrintRunCreated={pr=>setPrintRuns(prev=>[...prev,pr])}/>
+            </div>
+          )}
+        </div>
       )}
 
       {!loading&&view==="calendar"&&(
@@ -503,13 +539,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Harrison detail panel overlay */}
-      {view==="harrison"&&selJob&&(
-        <div style={{position:"fixed",top:0,right:0,bottom:0,left:0,background:"#faf8f4",overflowY:"auto",zIndex:200,boxShadow:"-4px 0 24px rgba(0,0,0,.1)"}}>
-          <JobDetail job={selJob} onSave={saveJob} onDelete={()=>deleteJob(selJob.id)} onArchive={()=>archiveJob(selJob)} onClose={()=>setSelJob(null)} printRuns={printRuns} onPrintRunCreated={pr=>setPrintRuns(prev=>[...prev,pr])}/>
-        </div>
-      )}
-
       {showNew&&<NewJobModal printRuns={printRuns} onAdd={f=>{addJob(f);setShowNew(false);}} onPrintRunCreated={pr=>setPrintRuns(prev=>[...prev,pr])} onClose={()=>setShowNew(false)}/>}
       {toast&&<div style={{position:"fixed",bottom:20,left:"50%",transform:"translateX(-50%)",background:C.green,color:"#fff",padding:"10px 20px",borderRadius:4,fontSize:11,letterSpacing:1,zIndex:9999}}>{toast}</div>}
     </div>
@@ -517,122 +546,8 @@ export default function App() {
 }
 
 // ── Harrison View ─────────────────────────────────────────────────────────────
-function HarrisonView({ jobs, onOpen }) {
-  const sorted = [...jobs].sort((a,b)=>{
-    if(a.isRush&&!b.isRush) return -1;
-    if(!a.isRush&&b.isRush) return 1;
-    if(a.dueDate&&b.dueDate) return new Date(a.dueDate)-new Date(b.dueDate);
-    if(a.dueDate) return -1;
-    if(b.dueDate) return 1;
-    return (a.priority||99)-(b.priority||99);
-  });
-
-  const byStage = LUPE_STAGES.map(s=>({
-    ...s,
-    jobs: sorted.filter(j=>j.stage===s.key)
-  })).filter(s=>s.jobs.length>0);
-
-  const DEC_COLORS_MAP = {
-    "Embroidery":{ bg:"#f3eeff", border:"#b39ddb", dot:"#7c4dbd", label:"Embroidery" },
-    "Vinyl":     { bg:"#fce8f0", border:"#f7a8c4", dot:"#c8215a", label:"Vinyl" },
-    "DTF":       { bg:"#e8f4fd", border:"#7eb8f7", dot:"#1a6eb5", label:"DTF" },
-    "Mixed":     { bg:"#fff2e8", border:"#ffb37a", dot:"#e07b20", label:"Mixed" },
-  };
-
-  const getDecStyle = (type) => {
-    const k = Object.keys(DEC_COLORS_MAP).find(k=>(type||"").toLowerCase().includes(k.toLowerCase()));
-    return k ? DEC_COLORS_MAP[k] : { bg:"#f5f2eb", border:"#e0dbd4", dot:"#aaa", label:type };
-  };
-
-  if(jobs.length===0) return (
-    <div style={{padding:60,textAlign:"center",color:C.muted,letterSpacing:2,fontSize:12}}>
-      NO EMBROIDERY, VINYL, DTF OR MIXED JOBS IN PRODUCTION
-    </div>
-  );
-
-  return (
-    <div style={{overflowY:"auto",height:"calc(100vh - 100px)",background:C.bg}}>
-      {/* Summary bar */}
-      <div style={{padding:"10px 20px",borderBottom:`1px solid ${C.border}`,background:"#eee9e0",display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
-        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:"1.5px",textTransform:"uppercase",color:C.muted}}>
-          {jobs.length} job{jobs.length!==1?"s":""} total
-          {jobs.filter(j=>j.isRush).length>0&&<span style={{color:C.red,marginLeft:12}}>⚡ {jobs.filter(j=>j.isRush).length} rush</span>}
-        </div>
-        {/* Dec type counts */}
-        {Object.entries(DEC_COLORS_MAP).map(([type,dc])=>{
-          const count=jobs.filter(j=>(j.decorationType||"").toLowerCase().includes(type.toLowerCase())).length;
-          if(!count) return null;
-          return <span key={type} style={{fontSize:10,padding:"2px 8px",background:dc.bg,color:dc.dot,border:`1px solid ${dc.border}`,borderRadius:2,fontFamily:"'DM Mono',monospace",letterSpacing:"1px"}}>{type}: {count}</span>;
-        })}
-      </div>
-
-      <div style={{padding:"16px 20px"}}>
-        {byStage.map(s=>(
-          <div key={s.key} style={{marginBottom:24}}>
-            {/* Stage header */}
-            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10,paddingBottom:6,borderBottom:`2px solid ${s.color}`}}>
-              <div style={{width:10,height:10,borderRadius:"50%",background:s.color,flexShrink:0}}/>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:11,fontWeight:700,letterSpacing:"2px",textTransform:"uppercase",color:s.color}}>{s.label}</div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,background:"#e0dbd4",padding:"2px 8px",borderRadius:10}}>{s.jobs.length}</div>
-            </div>
-
-            {/* Job rows */}
-            <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              {s.jobs.map((job,i)=>{
-                const dc = getDecStyle(job.decorationType);
-                const due = job.dueDate ? new Date(job.dueDate+"T00:00:00") : null;
-                const today = new Date(); today.setHours(0,0,0,0);
-                const daysLeft = due ? Math.ceil((due-today)/(1000*60*60*24)) : null;
-                const dueColor = daysLeft===null?"#aaa":daysLeft<0?"#c8392b":daysLeft<=3?"#e07b20":"#2a7a4b";
-
-                return (
-                  <div key={job.id} onClick={()=>onOpen(job)}
-                    style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:job.isRush?"#fff0ee":dc.bg,border:`1px solid ${job.isRush?"#c8392b":dc.border}`,borderLeft:`4px solid ${job.isRush?"#c8392b":dc.dot}`,borderRadius:4,cursor:"pointer",transition:"box-shadow .15s",boxShadow:job.isRush?"0 2px 8px rgba(200,57,43,.15)":"0 1px 3px rgba(0,0,0,.04)"}}>
-
-                    {/* Priority number */}
-                    <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,fontWeight:700,color:C.muted,minWidth:24,textAlign:"center"}}>{i+1}</div>
-
-                    {/* Rush flag */}
-                    {job.isRush&&<span style={{background:C.red,color:"#fff",fontSize:9,fontWeight:700,letterSpacing:"1.5px",padding:"2px 6px",borderRadius:2,fontFamily:"'DM Mono',monospace",flexShrink:0}}>⚡ RUSH</span>}
-
-                    {/* Customer + job info */}
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:13,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{job.customer}{job.company&&<span style={{fontWeight:400,color:C.sub}}> — {job.company}</span>}</div>
-                      <div style={{fontSize:11,color:C.sub,marginTop:2}}>#{job.jobNum} · {job.product||"—"}{job.qty?` · ${job.qty} units`:""}</div>
-                    </div>
-
-                    {/* Decoration type badge */}
-                    <div style={{fontSize:9,letterSpacing:"1px",textTransform:"uppercase",padding:"3px 8px",background:dc.bg,color:dc.dot,border:`1px solid ${dc.border}`,borderRadius:2,fontWeight:700,flexShrink:0,fontFamily:"'DM Mono',monospace"}}>{job.decorationType}</div>
-
-                    {/* Decoration date */}
-                    {job.decorationDate&&(
-                      <div style={{textAlign:"right",flexShrink:0}}>
-                        <div style={{fontSize:9,color:C.muted,letterSpacing:"1px",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>Scheduled</div>
-                        <div style={{fontSize:11,fontWeight:700,color:"#1a6eb5"}}>{new Date(job.decorationDate+"T00:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</div>
-                      </div>
-                    )}
-
-                    {/* Due date */}
-                    <div style={{textAlign:"right",flexShrink:0,minWidth:60}}>
-                      <div style={{fontSize:9,color:C.muted,letterSpacing:"1px",textTransform:"uppercase",fontFamily:"'DM Mono',monospace"}}>Due</div>
-                      <div style={{fontSize:11,fontWeight:700,color:dueColor}}>
-                        {due ? due.toLocaleDateString("en-CA",{month:"short",day:"numeric"}) : "—"}
-                      </div>
-                      {daysLeft!==null&&<div style={{fontSize:9,color:dueColor}}>{daysLeft<0?`${Math.abs(daysLeft)}d overdue`:daysLeft===0?"Today":`${daysLeft}d`}</div>}
-                    </div>
-
-                    {/* Notes preview */}
-                    {job.notes&&<div style={{fontSize:10,color:C.muted,maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flexShrink:0}}>📝 {job.notes}</div>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+// Same kanban layout as Lupe, filtered to Embroidery/Vinyl/DTF/Mixed jobs only
+// Rendered directly in the main board — no separate component needed
 
 // ── Calendar View ─────────────────────────────────────────────────────────────
 function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs }) {
