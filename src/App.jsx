@@ -601,10 +601,14 @@ function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs })
         </div>
         <div style={{color:"#888",fontSize:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
           #{job.jobNum} {job.decorationType?`· ${DEC_LABEL[job.decorationType]||job.decorationType}`:""}
-          {job.numScreens&&<span style={{color:"#c49a2a",fontWeight:700,marginLeft:4}}>· {job.numScreens} screens</span>}
-          {job.numSetups&&<span style={{color:"#7c4dbd",fontWeight:700,marginLeft:4}}>· {job.numSetups} setups</span>}
           {job.dueDate&&<span style={{color:job.isRush?"#c8392b":"#aaa",marginLeft:4}}>Due:{new Date(job.dueDate+"T00:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</span>}
         </div>
+        {(job.numScreens||job.numSetups)&&(
+          <div style={{display:"flex",gap:3,marginTop:2,flexWrap:"wrap"}}>
+            {job.numScreens&&<span style={{background:"#fff8e0",color:"#c49a2a",border:"1px solid #e8c547",borderRadius:2,padding:"1px 5px",fontSize:8,fontWeight:700,fontFamily:"'DM Mono',monospace",letterSpacing:"0.5px"}}>🖼 {job.numScreens} screens</span>}
+            {job.numSetups&&<span style={{background:"#f3eeff",color:"#7c4dbd",border:"1px solid #b39ddb",borderRadius:2,padding:"1px 5px",fontSize:8,fontWeight:700,fontFamily:"'DM Mono',monospace",letterSpacing:"0.5px"}}>⚙ {job.numSetups} setups</span>}
+          </div>
+        )}
       </div>
     );
   };
