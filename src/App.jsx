@@ -99,6 +99,7 @@ function r2j(r) {
     qty:r.qty||0, dueDate:r.due_date||"", decorationType:r.decoration_type||"",
     supplier:r.supplier||"", styleNum:r.style_num||"",
     numScreens:r.num_screens||null,
+    numSetups:r.num_setups||null,
     colour:r.garment_colour||r.colour||"", eta:r.eta||"", notes:r.notes||"",
     stage:r.stage||"new_sale", lisaChecklist:r.lisa_checklist||{},
     lupeChecklist:r.lupe_checklist||{}, productionAssignee:r.production_assignee||"",
@@ -267,7 +268,7 @@ export default function App() {
 
   const saveJob=async(job)=>{
     try{
-      await sb.patch("jobs",{ job_num:job.jobNum, customer:job.customer, company:job.company, product:job.product, qty:job.qty, due_date:job.dueDate, decoration_type:job.decorationType, supplier:job.supplier, style_num:job.styleNum, num_screens:job.numScreens||null, garment_colour:job.colour, eta:job.eta, notes:job.notes, stage:job.stage, lisa_checklist:job.lisaChecklist, lupe_checklist:job.lupeChecklist, production_assignee:job.productionAssignee, files:job.files||[], is_rush:job.isRush||false, multi_order:job.multiOrder||false, print_run_id:job.printRunId||null, print_run_name:job.printRunName||null },{id:job.id});
+      await sb.patch("jobs",{ job_num:job.jobNum, customer:job.customer, company:job.company, product:job.product, qty:job.qty, due_date:job.dueDate, decoration_type:job.decorationType, supplier:job.supplier, style_num:job.styleNum, num_screens:job.numScreens||null, num_setups:job.numSetups||null, garment_colour:job.colour, eta:job.eta, notes:job.notes, stage:job.stage, lisa_checklist:job.lisaChecklist, lupe_checklist:job.lupeChecklist, production_assignee:job.productionAssignee, files:job.files||[], is_rush:job.isRush||false, multi_order:job.multiOrder||false, print_run_id:job.printRunId||null, print_run_name:job.printRunName||null },{id:job.id});
       setJobs(prev=>prev.map(j=>j.id===job.id?job:j)); if(selJob?.id===job.id)setSelJob(job); showToast("Saved ✓");
     }catch(e){showToast("Save failed");}
   };
@@ -600,7 +601,8 @@ function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs })
         </div>
         <div style={{color:"#888",fontSize:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
           #{job.jobNum} {job.decorationType?`· ${DEC_LABEL[job.decorationType]||job.decorationType}`:""}
-          {job.numScreens&&<span style={{color:"#7c4dbd",fontWeight:700,marginLeft:4}}>· {job.numScreens}🖼</span>}
+          {job.numScreens&&<span style={{color:"#c49a2a",fontWeight:700,marginLeft:4}}>· {job.numScreens} screens</span>}
+          {job.numSetups&&<span style={{color:"#7c4dbd",fontWeight:700,marginLeft:4}}>· {job.numSetups} setups</span>}
           {job.dueDate&&<span style={{color:job.isRush?"#c8392b":"#aaa",marginLeft:4}}>Due:{new Date(job.dueDate+"T00:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</span>}
         </div>
       </div>
@@ -865,10 +867,13 @@ function JobDetail({job,onSave,onDelete,onArchive,onClose,printRuns=[],onPrintRu
       <div style={S.divider}/>
       <div style={{fontSize:10,letterSpacing:"2px",color:C.red,textTransform:"uppercase",marginBottom:12,fontWeight:700}}>Product Details</div>
       <div style={S.g2}><Field label="Supplier" k="supplier" opts={SUPPLIERS} value={f.supplier} onChange={update}/><Field label="Style #" k="styleNum" value={f.styleNum} onChange={update}/></div>
-      <div style={S.g3}>
+      <div style={S.g2}>
         <Field label="Colour" k="colour" value={f.colour} onChange={update}/>
-        <Field label="# Screens / Setups" k="numScreens" type="number" value={f.numScreens} onChange={update}/>
         <Field label="ETA" k="eta" type="date" value={f.eta} onChange={update}/>
+      </div>
+      <div style={S.g2}>
+        <Field label="# Screens (Screen Printing)" k="numScreens" type="number" value={f.numScreens} onChange={update}/>
+        <Field label="# Setups (Embroidery / DTF / Vinyl)" k="numSetups" type="number" value={f.numSetups} onChange={update}/>
       </div>
       <div style={S.divider}/>
       <div style={{marginBottom:16}}><label style={S.lbl}>Notes</label><textarea style={S.ta} value={f.notes||""} onChange={e=>update("notes",e.target.value)}/></div>
