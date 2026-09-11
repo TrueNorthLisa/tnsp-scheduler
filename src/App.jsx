@@ -402,9 +402,7 @@ export default function App() {
           jobs={jobs}
           pending={pendingCalendarSaves}
           onDateChange={(jobId,date)=>{
-            // Update local state immediately
             setJobs(prev=>prev.map(j=>j.id===jobId?{...j,decorationDate:date}:j));
-            // Track as pending save
             setPendingCalendarSaves(prev=>{
               const next={...prev,[jobId]:date};
               pendingCalendarSavesRef.current=next;
@@ -424,6 +422,11 @@ export default function App() {
             }catch(e){showToast("Save failed — try again");}
           }}
           loadJobs={loadJobs}
+          onSaveJob={saveJob}
+          onDeleteJob={deleteJob}
+          onArchiveJob={archiveJob}
+          printRuns={printRuns}
+          onPrintRunCreated={pr=>setPrintRuns(prev=>[...prev,pr])}
         />
       )}
 
@@ -552,8 +555,15 @@ export default function App() {
 // Rendered directly in the main board — no separate component needed
 
 // ── Calendar View ─────────────────────────────────────────────────────────────
-function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs }) {
+function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs, onSaveJob, onDeleteJob, onArchiveJob, printRuns, onPrintRunCreated }) {
   const hasPending = Object.keys(pending||{}).length > 0;
+  const [selJob, setSelJob] = useState(null);
+
+  // When a job is saved from detail panel, update local jobs list
+  const handleSave = (job) => {
+    onSaveJob(job);
+    setSelJob(job);
+  };
   const today = new Date(); today.setHours(0,0,0,0);
 
   // Build 4-week grid starting from Monday of current week
@@ -588,25 +598,30 @@ function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs })
     return k?DEC_COLORS[k]:{bg:"#f5f2eb",dot:"#aaa"};
   };
 
-  const CalChip = ({job}) => {
+  const CalChip = ({job, onOpen}) => {
     const dc = decColor(job.decorationType);
     return (
       <div
         draggable
         onDragStart={e=>{e.dataTransfer.effectAllowed="move";setDragJob(job);}}
         onDragEnd={()=>setDragJob(null)}
-        style={{background:job.isRush?"#fff0ee":dc.bg,border:`1px solid ${job.isRush?"#c8392b":dc.border||"#e0dbd4"}`,borderLeft:`3px solid ${job.isRush?"#c8392b":dc.dot||"#aaa"}`,borderRadius:3,padding:"3px 6px",marginBottom:3,cursor:"grab",userSelect:"none",fontSize:10,fontFamily:"'DM Mono',monospace"}}>
-        <div style={{fontWeight:700,color:"#0d0d0d",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:150}}>
-          {job.isRush&&"⚡ "}{job.customer||"—"}
+        onClick={()=>onOpen(job)}
+        style={{background:job.isRush?"#fff0ee":dc.bg,border:`1px solid ${job.isRush?"#c8392b":dc.border||"#e0dbd4"}`,borderLeft:`3px solid ${job.isRush?"#c8392b":dc.dot||"#aaa"}`,borderRadius:3,padding:"4px 6px",marginBottom:3,cursor:"pointer",userSelect:"none",fontSize:10,fontFamily:"'DM Mono',monospace",display:"flex",alignItems:"flex-start",gap:6}}>
+        {/* Left: customer + job info */}
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontWeight:700,color:"#0d0d0d",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+            {job.isRush&&"⚡ "}{job.customer||"—"}
+          </div>
+          <div style={{color:"#888",fontSize:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+            #{job.jobNum}{job.decorationType?` · ${DEC_LABEL[job.decorationType]||job.decorationType}`:""}
+            {job.dueDate&&<span style={{color:job.isRush?"#c8392b":"#bbb",marginLeft:4}}>Due:{new Date(job.dueDate+"T00:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</span>}
+          </div>
         </div>
-        <div style={{color:"#888",fontSize:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-          #{job.jobNum} {job.decorationType?`· ${DEC_LABEL[job.decorationType]||job.decorationType}`:""}
-          {job.dueDate&&<span style={{color:job.isRush?"#c8392b":"#aaa",marginLeft:4}}>Due:{new Date(job.dueDate+"T00:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</span>}
-        </div>
+        {/* Right: screens + setups */}
         {(job.numScreens||job.numSetups)&&(
-          <div style={{display:"flex",gap:3,marginTop:2,flexWrap:"wrap"}}>
-            {job.numScreens&&<span style={{background:"#fff8e0",color:"#c49a2a",border:"1px solid #e8c547",borderRadius:2,padding:"1px 5px",fontSize:8,fontWeight:700,fontFamily:"'DM Mono',monospace",letterSpacing:"0.5px"}}>🖼 {job.numScreens} screens</span>}
-            {job.numSetups&&<span style={{background:"#f3eeff",color:"#7c4dbd",border:"1px solid #b39ddb",borderRadius:2,padding:"1px 5px",fontSize:8,fontWeight:700,fontFamily:"'DM Mono',monospace",letterSpacing:"0.5px"}}>⚙ {job.numSetups} setups</span>}
+          <div style={{flexShrink:0,textAlign:"right",fontSize:9,lineHeight:1.7}}>
+            {job.numScreens&&<div style={{color:"#c49a2a",fontWeight:700,whiteSpace:"nowrap"}}>screens: {job.numScreens}</div>}
+            {job.numSetups&&<div style={{color:"#7c4dbd",fontWeight:700,whiteSpace:"nowrap"}}>setups: {job.numSetups}</div>}
           </div>
         )}
       </div>
@@ -623,7 +638,7 @@ function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs })
     cursor.setDate(cursor.getDate()+1);
   }
 
-  return (
+  return <>
     <div style={{display:"flex",height:"calc(100vh - 100px)",overflow:"hidden"}}>
       {/* Unscheduled sidebar */}
       <div style={{width:200,flexShrink:0,borderRight:`1px solid ${C.border}`,background:"#faf8f4",display:"flex",flexDirection:"column",overflow:"hidden"}}
@@ -636,7 +651,7 @@ function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs })
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"8px 8px",WebkitOverflowScrolling:"touch",background:dragOver==="unscheduled"?"#f0fff4":"transparent",transition:"background .15s"}}>
           {unscheduled.length===0&&<div style={{fontSize:10,color:"#ccc",textAlign:"center",padding:"20px 0",letterSpacing:1}}>ALL SCHEDULED</div>}
-          {unscheduled.map(job=><CalChip key={job.id} job={job}/>)}
+          {unscheduled.map(job=><CalChip key={job.id} job={job} onOpen={j=>setSelJob(j)}/>)}
         </div>
       </div>
 
@@ -704,7 +719,7 @@ function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs })
                 </div>
                 {/* Job chips */}
                 <div style={{overflow:"hidden"}}>
-                  {dayJobs.map(job=><CalChip key={job.id} job={job}/>)}
+                  {dayJobs.map(job=><CalChip key={job.id} job={job} onOpen={j=>setSelJob(j)}/>)}
                 </div>
               </div>
             );
@@ -713,7 +728,12 @@ function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs })
         </div>
       </div>
     </div>
-  );
+    {selJob&&(
+      <div style={{position:"fixed",top:0,right:0,bottom:0,left:0,background:"#faf8f4",overflowY:"auto",zIndex:200,boxShadow:"-4px 0 24px rgba(0,0,0,.1)"}}>
+        <JobDetail job={selJob} onSave={handleSave} onDelete={()=>{onDeleteJob(selJob.id);setSelJob(null);}} onArchive={()=>{onArchiveJob(selJob);setSelJob(null);}} onClose={()=>setSelJob(null)} printRuns={printRuns||[]} onPrintRunCreated={onPrintRunCreated||((pr)=>{})}/>
+      </div>
+    )}
+  </>;
 }
 
 // ── Job Card ──────────────────────────────────────────────────────────────────
