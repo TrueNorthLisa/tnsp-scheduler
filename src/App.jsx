@@ -720,17 +720,23 @@ function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs, o
                     const isSP = (j) => (j.decorationType||"").toLowerCase().includes("screen");
                     const spJobs = dayJobs.filter(isSP);
                     const emJobs = dayJobs.filter(j=>!isSP(j));
-                    const spUnits = spJobs.reduce((s,j)=>s+(parseInt(j.qty)||0),0);
-                    const emUnits = emJobs.reduce((s,j)=>s+(parseInt(j.qty)||0),0);
+                    const spUnits = spJobs.reduce((s,j)=>{
+                      const qty=parseInt(j.qty)||0;
+                      const setups=parseInt(j.numSetups)||1;
+                      return s+qty*setups;
+                    },0);
+                    const emUnits = emJobs.reduce((s,j)=>{
+                      const qty=parseInt(j.qty)||0;
+                      const setups=parseInt(j.numSetups)||1;
+                      return s+qty*setups;
+                    },0);
                     return (
                       <div style={{textAlign:"right",lineHeight:1.5}}>
                         {spUnits>0&&<div style={{fontSize:8,fontFamily:"'DM Mono',monospace",whiteSpace:"nowrap"}}>
-                          <span style={{color:"#c49a2a",fontWeight:700}}>SP </span>
-                          <span style={{color:"#c49a2a",fontWeight:700}}>{spUnits}u</span>
+                          <span style={{color:"#c49a2a",fontWeight:700}}>SP {spUnits}p</span>
                         </div>}
                         {emUnits>0&&<div style={{fontSize:8,fontFamily:"'DM Mono',monospace",whiteSpace:"nowrap"}}>
-                          <span style={{color:"#7c4dbd",fontWeight:700}}>EM/VI/DTF </span>
-                          <span style={{color:"#7c4dbd",fontWeight:700}}>{emUnits}u</span>
+                          <span style={{color:"#7c4dbd",fontWeight:700}}>EM/VI/DTF {emUnits}p</span>
                         </div>}
                       </div>
                     );
