@@ -711,12 +711,25 @@ function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs, o
                   outlineOffset:-2,
                   transition:"background .1s",
                 }}>
-                {/* Date number */}
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                {/* Date number + daily totals */}
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:3}}>
                   <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,fontWeight:isToday?700:400,color:isToday?C.gold:C.muted}}>
                     {day.getDate()===1?day.toLocaleDateString("en-CA",{month:"short",day:"numeric"}):day.getDate()}
                   </span>
-                  {dayJobs.length>0&&<span style={{fontSize:8,color:C.muted,background:"#e0dbd4",padding:"1px 4px",borderRadius:8}}>{dayJobs.length}</span>}
+                  {dayJobs.length>0&&(()=>{
+                    const totalUnits = dayJobs.reduce((s,j)=>s+(parseInt(j.qty)||0),0);
+                    const totalPrints = dayJobs.reduce((s,j)=>{
+                      const qty = parseInt(j.qty)||0;
+                      const setups = (parseInt(j.numSetups)||0)+(parseInt(j.numScreens)||0);
+                      return setups ? s + qty * setups : s;
+                    },0);
+                    return (
+                      <div style={{textAlign:"right",lineHeight:1.4}}>
+                        <div style={{fontSize:8,color:C.muted,fontFamily:"'DM Mono',monospace",whiteSpace:"nowrap"}}>{totalUnits} units</div>
+                        <div style={{fontSize:8,color:"#7c4dbd",fontWeight:700,fontFamily:"'DM Mono',monospace",whiteSpace:"nowrap"}}>{totalPrints} prints</div>
+                      </div>
+                    );
+                  })()}
                 </div>
                 {/* Job chips */}
                 <div style={{overflow:"hidden"}}>
