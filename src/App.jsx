@@ -717,16 +717,33 @@ function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs, o
                     {day.getDate()===1?day.toLocaleDateString("en-CA",{month:"short",day:"numeric"}):day.getDate()}
                   </span>
                   {dayJobs.length>0&&(()=>{
-                    const totalUnits = dayJobs.reduce((s,j)=>s+(parseInt(j.qty)||0),0);
-                    const totalPrints = dayJobs.reduce((s,j)=>{
-                      const qty = parseInt(j.qty)||0;
-                      const setups = (parseInt(j.numSetups)||0)+(parseInt(j.numScreens)||0);
-                      return setups ? s + qty * setups : s;
+                    const isSP = (j) => (j.decorationType||"").toLowerCase().includes("screen");
+                    const spJobs = dayJobs.filter(isSP);
+                    const emJobs = dayJobs.filter(j=>!isSP(j));
+                    const spUnits = spJobs.reduce((s,j)=>s+(parseInt(j.qty)||0),0);
+                    const emUnits = emJobs.reduce((s,j)=>s+(parseInt(j.qty)||0),0);
+                    const spPrints = spJobs.reduce((s,j)=>{
+                      const qty=parseInt(j.qty)||0;
+                      const setups=(parseInt(j.numScreens)||0)+(parseInt(j.numSetups)||0);
+                      return setups?s+qty*setups:s;
+                    },0);
+                    const emPrints = emJobs.reduce((s,j)=>{
+                      const qty=parseInt(j.qty)||0;
+                      const setups=(parseInt(j.numSetups)||0)+(parseInt(j.numScreens)||0);
+                      return setups?s+qty*setups:s;
                     },0);
                     return (
-                      <div style={{textAlign:"right",lineHeight:1.4}}>
-                        <div style={{fontSize:8,color:C.muted,fontFamily:"'DM Mono',monospace",whiteSpace:"nowrap"}}>{totalUnits} units</div>
-                        <div style={{fontSize:8,color:"#7c4dbd",fontWeight:700,fontFamily:"'DM Mono',monospace",whiteSpace:"nowrap"}}>{totalPrints} prints</div>
+                      <div style={{textAlign:"right",lineHeight:1.5}}>
+                        {spUnits>0&&<div style={{fontSize:8,fontFamily:"'DM Mono',monospace",whiteSpace:"nowrap"}}>
+                          <span style={{color:"#c49a2a",fontWeight:700}}>SP</span>
+                          <span style={{color:C.muted}}> {spUnits}u</span>
+                          {spPrints>0&&<span style={{color:"#c49a2a",fontWeight:700}}> · {spPrints}p</span>}
+                        </div>}
+                        {emUnits>0&&<div style={{fontSize:8,fontFamily:"'DM Mono',monospace",whiteSpace:"nowrap"}}>
+                          <span style={{color:"#7c4dbd",fontWeight:700}}>EM/VI/DTF</span>
+                          <span style={{color:C.muted}}> {emUnits}u</span>
+                          {emPrints>0&&<span style={{color:"#7c4dbd",fontWeight:700}}> · {emPrints}p</span>}
+                        </div>}
                       </div>
                     );
                   })()}
