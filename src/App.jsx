@@ -724,12 +724,12 @@ function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs, o
                     const emUnits = emJobs.reduce((s,j)=>s+(parseInt(j.qty)||0),0);
                     const spPrints = spJobs.reduce((s,j)=>{
                       const qty=parseInt(j.qty)||0;
-                      const setups=(parseInt(j.numScreens)||0)+(parseInt(j.numSetups)||0);
+                      const setups=parseInt(j.numSetups)||0;
                       return setups?s+qty*setups:s;
                     },0);
                     const emPrints = emJobs.reduce((s,j)=>{
                       const qty=parseInt(j.qty)||0;
-                      const setups=(parseInt(j.numSetups)||0)+(parseInt(j.numScreens)||0);
+                      const setups=parseInt(j.numSetups)||0;
                       return setups?s+qty*setups:s;
                     },0);
                     return (
