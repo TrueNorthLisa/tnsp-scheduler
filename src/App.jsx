@@ -614,7 +614,8 @@ function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs, o
           </div>
           <div style={{color:"#888",fontSize:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
             #{job.jobNum}{job.decorationType?` · ${DEC_LABEL[job.decorationType]||job.decorationType}`:""}
-            {job.dueDate&&<span style={{color:job.isRush?"#c8392b":"#bbb",marginLeft:4}}>Due:{new Date(job.dueDate+"T00:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</span>}
+            {job.qty?<span style={{color:"#555",fontWeight:700,marginLeft:4}}>{job.qty} units</span>:""}
+            {job.dueDate&&<span style={{color:job.isRush?"#c8392b":"#bbb",marginLeft:4}}>· Due:{new Date(job.dueDate+"T00:00:00").toLocaleDateString("en-CA",{month:"short",day:"numeric"})}</span>}
           </div>
         </div>
         {/* Right: screens + setups */}
