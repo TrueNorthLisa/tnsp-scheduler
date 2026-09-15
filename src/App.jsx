@@ -715,6 +715,23 @@ function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs, o
             const dateStr = fmt(day);
             const isToday = dateStr===fmt(today);
             const dayJobs = scheduled.filter(j=>j.decorationDate===dateStr);
+            // Sort: SP first, then EM/VI/DTF, within each group sort red→yellow→green→none
+            const urgencyRank = (j) => {
+              if(!j.dueDate||!j.decorationDate) return 4;
+              const due=new Date(j.dueDate+"T00:00:00");
+              const dec=new Date(j.decorationDate+"T00:00:00");
+              const d=Math.ceil((due-dec)/(1000*60*60*24));
+              if(d<=0) return 1;
+              if(d<=2) return 2;
+              return 3;
+            };
+            const isSPJob = (j) => (j.decorationType||"").toLowerCase().includes("screen");
+            const sortedDayJobs = [...dayJobs].sort((a,b)=>{
+              const aIsSP = isSPJob(a)?0:1;
+              const bIsSP = isSPJob(b)?0:1;
+              if(aIsSP!==bIsSP) return aIsSP-bIsSP;
+              return urgencyRank(a)-urgencyRank(b);
+            });
             const isDragTarget = dragOver===dateStr;
 
             return (
@@ -737,9 +754,9 @@ function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs, o
                     {day.getDate()===1?day.toLocaleDateString("en-CA",{month:"short",day:"numeric"}):day.getDate()}
                   </span>
                   {dayJobs.length>0&&(()=>{
-                    const isSP = (j) => (j.decorationType||"").toLowerCase().includes("screen");
-                    const spJobs = dayJobs.filter(isSP);
-                    const emJobs = dayJobs.filter(j=>!isSP(j));
+                    const isSPt = (j) => (j.decorationType||"").toLowerCase().includes("screen");
+                    const spJobs = dayJobs.filter(isSPt);
+                    const emJobs = dayJobs.filter(j=>!isSPt(j));
                     const spUnits = spJobs.reduce((s,j)=>{
                       const qty=parseInt(j.qty)||0;
                       const setups=parseInt(j.numSetups)||1;
@@ -764,7 +781,7 @@ function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs, o
                 </div>
                 {/* Job chips */}
                 <div style={{overflow:"hidden"}}>
-                  {dayJobs.map(job=><CalChip key={job.id} job={job} onOpen={j=>setSelJob(j)}/>)}
+                  {sortedDayJobs.map(job=><CalChip key={job.id} job={job} onOpen={j=>setSelJob(j)}/>)}
                 </div>
               </div>
             );
