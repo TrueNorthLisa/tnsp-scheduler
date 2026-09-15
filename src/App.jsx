@@ -600,13 +600,33 @@ function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs, o
 
   const CalChip = ({job, onOpen}) => {
     const dc = decColor(job.decorationType);
+
+    // Urgency: compare decoration date to due date
+    const urgency = (() => {
+      if(!job.dueDate||!job.decorationDate) return null;
+      const due = new Date(job.dueDate+"T00:00:00");
+      const dec = new Date(job.decorationDate+"T00:00:00");
+      const daysUntilDue = Math.ceil((due-dec)/(1000*60*60*24));
+      if(daysUntilDue<=0) return "red";    // due same day or overdue
+      if(daysUntilDue<=2) return "yellow"; // due next day or day after
+      return "green";                       // 3+ days away
+    })();
+
+    const urgencyStyle = urgency==="red"
+      ? { border:"2px solid #c8392b", boxShadow:"0 0 0 1px #c8392b44" }
+      : urgency==="yellow"
+      ? { border:"2px solid #e8c547", boxShadow:"0 0 0 1px #e8c54744" }
+      : urgency==="green"
+      ? { border:"2px solid #2a7a4b", boxShadow:"0 0 0 1px #2a7a4b44" }
+      : { border:`1px solid ${job.isRush?"#c8392b":dc.border||"#e0dbd4"}` };
+
     return (
       <div
         draggable
         onDragStart={e=>{e.dataTransfer.effectAllowed="move";setDragJob(job);}}
         onDragEnd={()=>setDragJob(null)}
         onClick={()=>onOpen(job)}
-        style={{background:job.isRush?"#fff0ee":dc.bg,border:`1px solid ${job.isRush?"#c8392b":dc.border||"#e0dbd4"}`,borderLeft:`3px solid ${job.isRush?"#c8392b":dc.dot||"#aaa"}`,borderRadius:3,padding:"4px 6px",marginBottom:3,cursor:"pointer",userSelect:"none",fontSize:10,fontFamily:"'DM Mono',monospace",display:"flex",alignItems:"flex-start",gap:6}}>
+        style={{background:job.isRush?"#fff0ee":dc.bg,...urgencyStyle,borderLeft:`3px solid ${job.isRush?"#c8392b":dc.dot||"#aaa"}`,borderRadius:3,padding:"4px 6px",marginBottom:3,cursor:"pointer",userSelect:"none",fontSize:10,fontFamily:"'DM Mono',monospace",display:"flex",alignItems:"flex-start",gap:6}}>
         {/* Left: customer + job info */}
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontWeight:700,color:"#0d0d0d",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
