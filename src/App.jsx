@@ -787,7 +787,7 @@ function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs, o
                   const showDivider = hasSpAndOther && i>0 && !isSPJob(job) && isSPJob(prevJob);
                   return (
                     <React.Fragment key={job.id}>
-                      {showDivider&&<div style={{borderTop:"2px dashed #d4cdc0",margin:"4px 0",opacity:0.7}}/>}
+                      {showDivider&&<div style={{borderTop:"2px solid #a09890",margin:"5px 0"}}/>}
                       <CalChip job={job} onOpen={j=>setSelJob(j)}/>
                     </React.Fragment>
                   );
