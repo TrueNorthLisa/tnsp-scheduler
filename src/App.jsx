@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 const SB_URL = (import.meta.env.VITE_SUPABASE_URL||"").replace(/\/rest\/v1\/?$/,"").replace(/\/+$/,"");
 const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -732,6 +732,7 @@ function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs, o
               if(aIsSP!==bIsSP) return aIsSP-bIsSP;
               return urgencyRank(a)-urgencyRank(b);
             });
+            const hasSpAndOther = sortedDayJobs.some(isSPJob) && sortedDayJobs.some(j=>!isSPJob(j));
             const isDragTarget = dragOver===dateStr;
 
             return (
@@ -781,7 +782,16 @@ function CalendarView({ jobs, pending, onDateChange, onSaveCalendar, loadJobs, o
                 </div>
                 {/* Job chips */}
                 <div style={{overflow:"hidden"}}>
-                  {sortedDayJobs.map(job=><CalChip key={job.id} job={job} onOpen={j=>setSelJob(j)}/>)}
+                  {sortedDayJobs.map((job,i)=>{
+                  const prevJob = sortedDayJobs[i-1];
+                  const showDivider = hasSpAndOther && i>0 && !isSPJob(job) && isSPJob(prevJob);
+                  return (
+                    <React.Fragment key={job.id}>
+                      {showDivider&&<div style={{borderTop:"2px dashed #d4cdc0",margin:"4px 0",opacity:0.7}}/>}
+                      <CalChip job={job} onOpen={j=>setSelJob(j)}/>
+                    </React.Fragment>
+                  );
+                })}
                 </div>
               </div>
             );
